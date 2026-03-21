@@ -79,7 +79,7 @@ export default function FeaturedProducts() {
       />
 
       {/* Dial */}
-      <div className="flex justify-center mt-8 mb-2" style={{ perspective: "500px" }}>
+      <div style={{ position: "relative", display: "flex", justifyContent: "center", marginTop: 16, marginBottom: 0, perspective: "700px" }}>
         <GlassDial
           n={n} active={active} prev={prev} next={next}
           offset={dialOffset} setOffset={setDialOffset}
@@ -257,16 +257,23 @@ function ProductCard({
   );
 }
 
-// ─── Knurled metal dial ────────────────────────────────────────────────────────
+// ─── Charcoal bar dial ─────────────────────────────────────────────────────────
 
-const STRIP_W     = 320;
-const DISC_H      = 18;   // disc face above the band
-const BODY_H      = 30;   // groove band height
-const STRIP_H     = DISC_H + BODY_H;
-const GROOVE_PITCH = 8;   // px between groove lines
-const ARROW_PAD   = 38;
-const SVG_W       = STRIP_W + ARROW_PAD * 2;
-const DRAG_PX_STEP = 36;
+const STRIP_W      = 420;
+const RIDGE_H      = 16;    // thin top strip
+const GAP_H        = 5;     // transparent gap between ridge and slot band
+const DISC_H       = RIDGE_H + GAP_H; // y-offset where slot band starts
+const SLOT_W       = 5;
+const SLOT_GAP     = 4;
+const SLOT_PITCH   = SLOT_W + SLOT_GAP;
+const BAND_H       = 24;
+const SLOT_H       = 18;
+const SLOT_INSET_Y = 2.5;
+const SLOT_R       = 1;
+const STRIP_H      = DISC_H + BAND_H;
+const ARROW_PAD    = 60;
+const SVG_W        = STRIP_W + ARROW_PAD * 2;
+const DRAG_PX_STEP = SLOT_PITCH * 2;
 
 function GlassDial({
   n, prev, next, offset, setOffset, showHint,
@@ -280,6 +287,7 @@ function GlassDial({
   showHint: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isDialHovered, setIsDialHovered] = useState(false);
   const drag = useRef({ active: false, lastX: 0, accumulated: 0 });
 
   const onMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -308,131 +316,160 @@ function GlassDial({
     window.addEventListener("mouseup",   onUp);
   }, [prev, next]);
 
-  // Groove positions — seamless infinite tile via shift-mod-pitch
-  const grooveShift  = ((offset % GROOVE_PITCH) + GROOVE_PITCH) % GROOVE_PITCH;
-  const grooveCount  = Math.ceil(STRIP_W / GROOVE_PITCH) + 4;
-  const grooveOrigin = ARROW_PAD - GROOVE_PITCH * 2 + grooveShift;
+  // Seamless slot tiling
+  const slotShift  = ((offset % SLOT_PITCH) + SLOT_PITCH) % SLOT_PITCH;
+  const slotCount  = Math.ceil(STRIP_W / SLOT_PITCH) + 6;
+  const slotOrigin = ARROW_PAD - SLOT_PITCH * 3 + slotShift;
 
   return (
     <svg
       width={SVG_W}
-      height={STRIP_H}
-      viewBox={`0 0 ${SVG_W} ${STRIP_H}`}
+      height={STRIP_H + 28}          /* extra height for shadow beneath */
+      viewBox={`0 0 ${SVG_W} ${STRIP_H + 28}`}
       onMouseDown={n > 1 ? onMouseDown : undefined}
+      onMouseEnter={() => setIsDialHovered(true)}
+      onMouseLeave={() => setIsDialHovered(false)}
       style={{
         cursor:         n > 1 ? (isDragging ? "grabbing" : "grab") : "default",
         userSelect:     "none",
         display:        "block",
         overflow:       "visible",
-        filter:         "drop-shadow(0 8px 24px rgba(0,0,0,0.45)) drop-shadow(0 2px 5px rgba(0,0,0,0.35))",
         transform:      "rotateX(-28deg)",
         transformStyle: "preserve-3d",
       }}
     >
       <defs>
-        {/* Disc face */}
-        <linearGradient id="discGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#505050" />
-          <stop offset="40%"  stopColor="#2e2e2e" />
+        {/* ── Top ridge — dark metallic ── */}
+        <linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#3a3a3a" />
+          <stop offset="40%"  stopColor="#2a2a2a" />
           <stop offset="100%" stopColor="#1a1a1a" />
         </linearGradient>
 
-        {/* Groove band body */}
-        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#d0d0d0" />
-          <stop offset="6%"   stopColor="#808080" />
-          <stop offset="22%"  stopColor="#303030" />
-          <stop offset="55%"  stopColor="#181818" />
-          <stop offset="100%" stopColor="#080808" />
-        </linearGradient>
-
-        {/* Metal grain */}
-        <filter id="grain" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" seed="5" result="noise" />
+        {/* Fine matte grain */}
+        <filter id="matte" x="-2%" y="-2%" width="104%" height="104%">
+          <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="4" seed="3" result="n" />
           <feColorMatrix type="matrix"
-            values="0 0 0 0 0.9  0 0 0 0 0.9  0 0 0 0 0.9  0 0 0 0.13 0"
-            in="noise" result="grain" />
-          <feBlend in="SourceGraphic" in2="grain" mode="screen" result="blended" />
-          <feComposite in="blended" in2="SourceGraphic" operator="in" />
+            values="0 0 0 0 0.8  0 0 0 0 0.8  0 0 0 0 0.8  0 0 0 0.09 0"
+            in="n" result="g" />
+          <feBlend in="SourceGraphic" in2="g" mode="screen" result="b" />
+          <feComposite in="b" in2="SourceGraphic" operator="in" />
         </filter>
 
-        {/* Edge fade */}
+        {/* ── Slot-band charcoal fill ── */}
+        <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#383838" />
+          <stop offset="100%" stopColor="#232323" />
+        </linearGradient>
+
+        {/* Soft diffused light from above on the whole bar */}
+        <linearGradient id="topLight" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0)" />
+          <stop offset="50%"  stopColor="rgba(255,255,255,0.06)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </linearGradient>
+
+        {/* Horizontal edge fade (both disc + band) */}
         <linearGradient id="edgeFade" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%"   stopColor="white" stopOpacity="0" />
-          <stop offset="9%"   stopColor="white" stopOpacity="1" />
-          <stop offset="91%"  stopColor="white" stopOpacity="1" />
+          <stop offset="11%"  stopColor="white" stopOpacity="1" />
+          <stop offset="89%"  stopColor="white" stopOpacity="1" />
           <stop offset="100%" stopColor="white" stopOpacity="0" />
         </linearGradient>
         <mask id="edgeMask">
           <rect x={ARROW_PAD} y={0} width={STRIP_W} height={STRIP_H} fill="url(#edgeFade)" />
         </mask>
-        <clipPath id="stripClip">
+        <clipPath id="barClip">
           <rect x={ARROW_PAD} y={0} width={STRIP_W} height={STRIP_H} />
         </clipPath>
+
+        {/* Shadow ellipse beneath bar */}
+        <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.30)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        </radialGradient>
+
+        {/* Background white vignette (wide, fades to page bg) */}
+        <radialGradient id="vignette" cx="50%" cy="40%" r="55%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.95)" />
+          <stop offset="55%"  stopColor="rgba(255,255,255,0.60)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </radialGradient>
       </defs>
 
-      {/* ── Strip content ── */}
-      <g clipPath="url(#stripClip)" mask="url(#edgeMask)">
+      {/* ── White vignette background ── */}
+      <ellipse
+        cx={SVG_W / 2} cy={STRIP_H * 0.45}
+        rx={SVG_W * 0.62} ry={STRIP_H * 1.4}
+        fill="url(#vignette)"
+      />
 
-        {/* Base */}
-        <rect x={ARROW_PAD - GROOVE_PITCH} y={0}
-          width={STRIP_W + GROOVE_PITCH * 2} height={STRIP_H} fill="#050505" />
+      {/* ── Bar body ── */}
+      <g clipPath="url(#barClip)" mask="url(#edgeMask)">
 
-        {/* Disc face */}
-        <rect x={ARROW_PAD} y={0} width={STRIP_W} height={DISC_H}
-          fill="url(#discGrad)" filter="url(#grain)" />
-        <line x1={ARROW_PAD} y1={0.5} x2={ARROW_PAD + STRIP_W} y2={0.5}
-          stroke="rgba(255,255,255,0.28)" strokeWidth={1} />
-        {/* Step shadow between disc and band */}
-        <line x1={ARROW_PAD} y1={DISC_H} x2={ARROW_PAD + STRIP_W} y2={DISC_H}
-          stroke="rgba(0,0,0,0.95)" strokeWidth={2.5} />
+        {/* Slot band background — charcoal */}
+        <rect x={ARROW_PAD} y={DISC_H} width={STRIP_W} height={BAND_H}
+          fill="url(#bandGrad)" />
 
-        {/* Groove band */}
-        <rect x={ARROW_PAD} y={DISC_H} width={STRIP_W} height={BODY_H}
-          fill="url(#bodyGrad)" filter="url(#grain)" />
-
-        {/* Band top specular */}
-        <line x1={ARROW_PAD} y1={DISC_H + 0.6} x2={ARROW_PAD + STRIP_W} y2={DISC_H + 0.6}
-          stroke="rgba(255,255,255,0.90)" strokeWidth={1.6} />
-        <line x1={ARROW_PAD} y1={DISC_H + 3.5} x2={ARROW_PAD + STRIP_W} y2={DISC_H + 3.5}
-          stroke="rgba(255,255,255,0.14)" strokeWidth={1} />
-
-        {/* Vertical groove lines — scrolling */}
-        {Array.from({ length: grooveCount }, (_, i) => {
-          const x = grooveOrigin + i * GROOVE_PITCH;
+        {/* Recessed slots — scrolling */}
+        {Array.from({ length: slotCount }, (_, i) => {
+          const sx = slotOrigin + i * SLOT_PITCH - SLOT_W / 2;
+          const sy = DISC_H + SLOT_INSET_Y;
           return (
             <g key={i}>
-              {/* Shadow side */}
-              <line
-                x1={x + 0.8} y1={DISC_H + 4} x2={x + 0.8} y2={DISC_H + BODY_H - 4}
-                stroke="rgba(0,0,0,0.75)" strokeWidth={1.2} />
-              {/* Lit side */}
-              <line
-                x1={x} y1={DISC_H + 4} x2={x} y2={DISC_H + BODY_H - 4}
-                stroke="rgba(255,255,255,0.38)" strokeWidth={0.8} />
+              {/* Deep recess */}
+              <rect x={sx} y={sy} width={SLOT_W} height={SLOT_H} rx={SLOT_R}
+                fill="#0a0a0a" />
+              {/* Top shadow lip (recessed depth illusion) */}
+              <rect x={sx} y={sy} width={SLOT_W} height={2} rx={SLOT_R}
+                fill="rgba(0,0,0,0.80)" />
+              {/* Bottom reflected light (very faint) */}
+              <rect x={sx + 1} y={sy + SLOT_H - 1.5} width={SLOT_W - 2} height={1}
+                fill="rgba(255,255,255,0.08)" />
             </g>
           );
         })}
 
-        {/* Band bottom edge */}
-        <line x1={ARROW_PAD} y1={DISC_H + BODY_H - 0.5} x2={ARROW_PAD + STRIP_W} y2={DISC_H + BODY_H - 0.5}
-          stroke="rgba(0,0,0,0.80)" strokeWidth={1} />
+        {/* ── Top ridge strip ── */}
+        <rect x={ARROW_PAD} y={0} width={STRIP_W} height={RIDGE_H}
+          fill="url(#ridgeGrad)" filter="url(#matte)" />
+
+        {/* Top edge specular — bright metallic catch light */}
+        <line x1={ARROW_PAD} y1={0.5} x2={ARROW_PAD + STRIP_W} y2={0.5}
+          stroke="rgba(255,255,255,0.45)" strokeWidth={1.5} />
+
+        {/* Bottom edge of ridge */}
+        <line x1={ARROW_PAD} y1={RIDGE_H} x2={ARROW_PAD + STRIP_W} y2={RIDGE_H}
+          stroke="rgba(0,0,0,0.65)" strokeWidth={1} />
+
+        {/* Centre soft overhead light on ridge only */}
+        <rect x={ARROW_PAD} y={0} width={STRIP_W} height={RIDGE_H}
+          fill="url(#topLight)" />
+
+        {/* Band top seam */}
+        <line x1={ARROW_PAD} y1={DISC_H} x2={ARROW_PAD + STRIP_W} y2={DISC_H}
+          stroke="rgba(0,0,0,0.85)" strokeWidth={1.5} />
+
+        {/* Bottom edge of bar */}
+        <line x1={ARROW_PAD} y1={STRIP_H - 0.5} x2={ARROW_PAD + STRIP_W} y2={STRIP_H - 0.5}
+          stroke="rgba(0,0,0,0.70)" strokeWidth={1} />
       </g>
 
+      {/* ── Cast shadow on surface beneath ── */}
+      <ellipse
+        cx={SVG_W / 2} cy={STRIP_H + 14}
+        rx={STRIP_W * 0.46} ry={10}
+        fill="url(#shadowGrad)"
+        opacity={0.7}
+      />
+
       {/* ── Hover label ── */}
-      <g
-        style={{
-          opacity:    showHint && n > 1 ? 1 : 0,
-          transition: "opacity 0.25s ease",
-        }}
-      >
+      <g style={{ opacity: (showHint || isDialHovered) && n > 1 ? 1 : 0, transition: "opacity 0.25s ease" }}>
         <text
-          x={SVG_W / 2}
-          y={-10}
+          x={SVG_W / 2} y={-10}
           textAnchor="middle"
           fontFamily="var(--font-body, sans-serif)"
-          fontSize="11"
-          letterSpacing="2.5"
+          fontSize="11" letterSpacing="2.5"
           fill="#4e4638"
           style={{ textTransform: "uppercase" }}
         >

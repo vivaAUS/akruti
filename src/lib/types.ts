@@ -7,6 +7,9 @@ export type Product = {
   images: string[];
   category: string;
   inStock: boolean;
+  isNew?: boolean;
+  isFeatured?: boolean;
+  specs?: Array<[string, string]>; // [[label, value], ...]
 };
 
 export type CartItem = {

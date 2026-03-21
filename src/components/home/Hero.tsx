@@ -1,23 +1,89 @@
-import Link from "next/link";
+"use client";
+
+import { useRef, useState } from "react";
+import { Play, Pause } from "lucide-react";
 
 export default function Hero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(true);
+
+  function togglePlay() {
+    if (!videoRef.current) return;
+    if (playing) {
+      videoRef.current.pause();
+      setPlaying(false);
+    } else {
+      videoRef.current.play();
+      setPlaying(true);
+    }
+  }
+
   return (
-    <section className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white py-24 px-4">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-          Custom 3D Prints,<br />Made for You
+    <header className="relative min-h-screen flex flex-col items-center justify-center bg-white overflow-hidden pt-24">
+
+      <div className="relative z-10 text-center max-w-4xl px-6 flex flex-col items-center">
+        {/* Tagline with decorative lines */}
+        <div className="mb-8 flex items-center gap-4">
+          <div className="w-16 h-px bg-akruti-border/60" />
+          <span className="text-[0.6875rem] tracking-[0.25em] uppercase text-akruti-muted font-medium font-body">
+            Atelier of Precision
+          </span>
+          <div className="w-16 h-px bg-akruti-border/60" />
+        </div>
+
+        {/* Brand headline */}
+        <h1 className="font-headline text-7xl md:text-[8rem] leading-[0.9] tracking-tighter mb-10 text-akruti-dark select-none">
+          AKRUTI
         </h1>
-        <p className="text-indigo-200 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
-          From fidgets to figurines, every piece is printed fresh and shipped straight to your door.
-          Quality you can hold in your hands.
-        </p>
-        <Link
-          href="/shop"
-          className="inline-block bg-white text-indigo-700 font-bold px-8 py-4 rounded-full text-lg hover:bg-indigo-50 transition-colors shadow-lg"
+
+        {/* Video player */}
+        <div
+          onClick={togglePlay}
+          className="relative w-full max-w-lg mx-auto aspect-video mb-12 bg-white group cursor-pointer overflow-hidden"
+          role="button"
+          aria-label={playing ? "Pause" : "Play"}
         >
-          Browse the Shop
-        </Link>
+          <video
+            ref={videoRef}
+            src="/hero2.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          />
+
+          {/* Play/pause overlay */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+              playing ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+            }`}
+            style={{ background: "rgba(28,27,27,0.25)" }}
+          >
+            <div
+              className="w-16 h-16 flex items-center justify-center"
+              style={{ background: "rgba(252,248,248,0.15)", backdropFilter: "blur(6px)" }}
+            >
+              {playing ? (
+                <Pause className="w-7 h-7 text-white" />
+              ) : (
+                <Play className="w-7 h-7 text-white" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-[0.625rem] tracking-[0.3em] uppercase text-akruti-dark/40 font-body">
+            Scroll to Explore
+          </span>
+          <div
+            className="w-px h-16"
+            style={{ background: "linear-gradient(to bottom, #7b580b, transparent)" }}
+          />
+        </div>
       </div>
-    </section>
+    </header>
   );
 }

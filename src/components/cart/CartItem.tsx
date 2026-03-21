@@ -3,15 +3,16 @@
 import { Trash2 } from "lucide-react";
 import { CartItem as CartItemType } from "@/lib/types";
 import { useCartStore } from "@/store/cart";
-import { formatPrice } from "@/lib/stripe";
+import { formatPrice } from "@/lib/format";
+import ProductImage from "@/components/ui/ProductImage";
 
 export default function CartItem({ item }: { item: CartItemType }) {
   const { updateQuantity, removeItem } = useCartStore();
 
   return (
     <div className="flex items-center gap-4 py-4 border-b border-gray-100">
-      <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center text-xs text-gray-400">
-        img
+      <div className="w-16 h-16 rounded-lg flex-shrink-0 overflow-hidden">
+        <ProductImage src={item.product.images[0]} alt={item.product.name} name={item.product.name} category={item.product.category} size="sm" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-900 truncate">{item.product.name}</p>

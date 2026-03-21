@@ -3,16 +3,23 @@
 import Link from "next/link";
 import { useCartStore } from "@/store/cart";
 import CartItem from "@/components/cart/CartItem";
-import { formatPrice } from "@/lib/stripe";
+import { formatPrice } from "@/lib/format";
 import { ShoppingCart } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function CartPage() {
   const { items, totalPrice } = useCartStore();
 
+  function handleCheckout() {
+    toast("Checkout coming soon — we'll notify you when it's live! 🛒", { icon: "⏳" });
+  }
+
   if (items.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <ShoppingCart className="w-10 h-10 text-indigo-400" />
+        </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h1>
         <p className="text-gray-500 mb-8">Looks like you haven&apos;t added anything yet.</p>
         <Link
@@ -36,7 +43,10 @@ export default function CartPage() {
           <span className="text-lg font-semibold text-gray-900">Total</span>
           <span className="text-2xl font-extrabold text-gray-900">{formatPrice(totalPrice())}</span>
         </div>
-        <button className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-colors text-lg">
+        <button
+          onClick={handleCheckout}
+          className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-colors text-lg"
+        >
           Proceed to Checkout
         </button>
       </div>

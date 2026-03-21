@@ -4,8 +4,9 @@ import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/store/cart";
-import { formatPrice } from "@/lib/stripe";
+import { formatPrice } from "@/lib/format";
 import toast from "react-hot-toast";
+import ProductImage from "@/components/ui/ProductImage";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addItem = useCartStore((s) => s.addItem);
@@ -16,11 +17,10 @@ export default function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 overflow-hidden flex flex-col">
       <Link href={`/product/${product.slug}`}>
-        <div className="aspect-square bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-          {/* Replace with <Image> once you have real photos */}
-          No image
+        <div className="aspect-square overflow-hidden rounded-t-2xl">
+          <ProductImage src={product.images[0]} alt={product.name} name={product.name} category={product.category} />
         </div>
       </Link>
       <div className="p-4 flex flex-col gap-2 flex-1">

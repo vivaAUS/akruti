@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code
+.claude/
+
+# local binaries
+cloudflared.exe
+
+# user uploads (local disk — migrate to object storage before prod)
+/public/uploads/

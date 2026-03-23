@@ -6,6 +6,11 @@ import { useCartStore } from "@/store/cart";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 
+function goHome() {
+  window.dispatchEvent(new Event("home-navigate"));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 const navLinks = [
   { label: "HOME",          href: "/" },
   { label: "CATALOGUE",     href: "/shop" },
@@ -30,7 +35,7 @@ export default function Header() {
       <div className="flex justify-between items-center w-full px-8 py-6 max-w-[1920px] mx-auto">
 
         {/* Logo */}
-        <Link href="/" className="text-2xl font-headline font-bold tracking-tighter text-akruti-cream">
+        <Link href="/" onClick={goHome} className="text-2xl font-headline font-bold tracking-tighter text-akruti-cream">
           AKRUTI
         </Link>
 
@@ -40,6 +45,7 @@ export default function Header() {
             <Link
               key={link.label}
               href={link.href}
+              onClick={link.href === "/" ? goHome : undefined}
               className={`font-headline tracking-tight uppercase font-medium text-sm transition-colors duration-300 ${
                 isActive(link.href)
                   ? "text-akruti-gold border-b border-akruti-gold pb-1"
@@ -86,7 +92,7 @@ export default function Header() {
             <Link
               key={link.label}
               href={link.href}
-              onClick={() => setMenuOpen(false)}
+              onClick={() => { setMenuOpen(false); if (link.href === "/") goHome(); }}
               className={`font-headline text-sm uppercase tracking-widest transition-colors py-1 ${
                 isActive(link.href) ? "text-akruti-gold" : "text-akruti-cream/60 hover:text-akruti-gold"
               }`}

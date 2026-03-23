@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ShoppingCart, Plus, Minus, Star, ChevronLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { type Category } from "@/data/categories";
@@ -254,6 +254,21 @@ export default function CollectionExplorer() {
 
   const categories     = useCatalogStore((s) => s.categories);
   const allProducts    = useCatalogStore((s) => s.products);
+
+  // Reset to categories view when HOME is clicked
+  useEffect(() => {
+    function onHomeNavigate() {
+      setScreen("categories");
+      setPhase("idle");
+      setSelectedCategory(null);
+      setSelectedProduct(null);
+      setClickedCell(null);
+      setSplitBalls(false);
+      setPanelRevealStep(3);
+    }
+    window.addEventListener("home-navigate", onHomeNavigate);
+    return () => window.removeEventListener("home-navigate", onHomeNavigate);
+  }, []);
 
   const addItem        = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);

@@ -1,6 +1,6 @@
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { use, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -365,9 +365,24 @@ function StarSelector({ value, onChange }: { value: number; onChange: (v: number
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const router = useRouter();
 
   const products = useCatalogStore((s) => s.products);
-  const product  = products.find((p) => p.slug === slug);
+  // Zustand persist hydrates asynchronously — wait for it before 404-ing,
+  // otherwise admin-added products (localStorage only) always notFound.
+  const [hydrated, setHydrated] = useState(() => useCatalogStore.persist.hasHydrated());
+  useEffect(() => {
+    if (!hydrated) {
+      const unsub = useCatalogStore.persist.onFinishHydration(() => setHydrated(true));
+      return () => unsub();
+    }
+  }, [hydrated]);
+
+  const product = products.find((p) => p.slug === slug || p.slug === slug.toLowerCase());
+
+  // Still waiting for localStorage to load — render nothing yet.
+  if (!hydrated && !product) return null;
+  // Hydrated and still not found — genuine 404.
   if (!product) notFound();
 
   const addItem        = useCartStore((s) => s.addItem);
@@ -397,6 +412,14 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   // ── Section tabs ──
   const [activeSection, setActiveSection] = useState<"description" | "technical" | "reviews">("description");
+
+  // ── Floating back button visibility ──
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 80); }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // ── Reviews state ──
   const [reviews,        setReviews]        = useState<Review[]>(SEED_REVIEWS[product.slug] ?? []);
@@ -463,9 +486,61 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
       <div className="min-h-screen bg-white">
 
+        {/* ── Floating glass back button ────────────────────────────────── */}
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="fixed z-50 flex items-center gap-2 transition-all duration-500"
+          style={{
+            left: scrolled ? "1.5rem" : "-6rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+            opacity: scrolled ? 1 : 0,
+            pointerEvents: scrolled ? "auto" : "none",
+            background: "rgba(18,17,17,0.72)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(196,154,74,0.30)",
+            borderRadius: "2rem",
+            padding: "0.55rem 1rem 0.55rem 0.75rem",
+            boxShadow: "0 4px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
+          <ChevronLeft className="w-4 h-4 flex-shrink-0" style={{ color: "#c49a4a" }} />
+          <span className="font-headline text-[0.6rem] tracking-[0.18em] uppercase" style={{ color: "rgba(232,212,183,0.85)" }}>
+            Back
+          </span>
+        </button>
+
+        {/* ── Floating glass top button ─────────────────────────────────── */}
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Back to top"
+          className="fixed z-50 flex items-center gap-2 transition-all duration-500"
+          style={{
+            right: scrolled ? "1.5rem" : "-6rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+            opacity: scrolled ? 1 : 0,
+            pointerEvents: scrolled ? "auto" : "none",
+            background: "rgba(18,17,17,0.72)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(196,154,74,0.30)",
+            borderRadius: "2rem",
+            padding: "0.55rem 1rem 0.55rem 0.75rem",
+            boxShadow: "0 4px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
+          <span className="font-headline text-[0.6rem] tracking-[0.18em] uppercase" style={{ color: "rgba(232,212,183,0.85)" }}>
+            Top
+          </span>
+          <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "#c49a4a" }} />
+        </button>
+
         {/* ── Breadcrumb ───────────────────────────────────────────────── */}
-        <nav className="fixed top-[4.5rem] left-0 right-0 z-40 flex items-center gap-1.5 px-8 py-2.5 bg-white/90 backdrop-blur-sm font-body"
-             style={{ borderBottom: "1px solid rgba(210,197,179,0.15)" }}>
+        <nav className="fixed top-[4.875rem] left-0 right-0 z-40 flex items-center gap-1.5 px-8 py-2.5 bg-white/95 backdrop-blur-sm font-body"
+             style={{ borderBottom: "1px solid rgba(210,197,179,0.20)" }}>
           <Link href="/" className="text-[0.6rem] tracking-[0.12em] uppercase text-akruti-muted/50 hover:text-akruti-primary transition-colors">Home</Link>
           <ChevronRight className="w-3 h-3 text-akruti-border" />
           <Link href="/shop" className="text-[0.6rem] tracking-[0.12em] uppercase text-akruti-muted/50 hover:text-akruti-primary transition-colors">Catalogue</Link>
@@ -473,7 +548,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <span className="text-[0.6rem] tracking-[0.12em] uppercase text-akruti-dark truncate">{product.name}</span>
         </nav>
 
-        <div className="pt-[7.5rem]">
+        <div className="pt-[7.75rem]">
 
           {/* ══════════════════════════════════════════════════════════════
               GALLERY — full-width, dark background, contain fit

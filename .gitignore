@@ -48,3 +48,6 @@ cloudflared.exe
 
 # user uploads (local disk — migrate to object storage before prod)
 /public/uploads/
+
+# video assets (use object storage or CDN instead)
+*.mp4

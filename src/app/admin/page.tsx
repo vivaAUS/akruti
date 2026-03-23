@@ -467,7 +467,7 @@ function ProductForm({
         </div>
         <div>
           <label className={lbl}>Slug (auto)</label>
-          <input value={f.slug} onChange={(e) => set("slug", e.target.value)}
+          <input value={f.slug} onChange={(e) => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
             className={inp + " bg-[#f6f3f2]"} placeholder="e.g. geometric-fidget-cube" />
         </div>
       </div>

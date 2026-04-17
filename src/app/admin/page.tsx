@@ -627,13 +627,15 @@ export default function AdminPage() {
 
   // ── helpers ──────────────────────────────────────────────────────────────────
 
+  const toCatId = (category: string) => category.toLowerCase().replace(/\s+/g, "-");
+
   const productCount = (catId: string) =>
-    products.filter((p) => p.category.toLowerCase() === catId).length;
+    products.filter((p) => toCatId(p.category) === catId).length;
 
   const visibleProducts =
     catFilter === "all"
       ? products
-      : products.filter((p) => p.category.toLowerCase() === catFilter);
+      : products.filter((p) => toCatId(p.category) === catFilter);
 
   // ── sidebar nav item ─────────────────────────────────────────────────────────
   function NavItem({

@@ -19,7 +19,7 @@ export default function CataloguePage() {
   const filtered =
     active === ALL
       ? products
-      : products.filter((p) => p.category.toLowerCase() === active);
+      : products.filter((p) => p.category.toLowerCase().replace(/\s+/g, "-") === active);
 
   return (
     <div className="pt-24 pb-24 min-h-screen bg-white">
@@ -52,7 +52,7 @@ export default function CataloguePage() {
         </button>
         {categories.map((cat) => {
           const count = products.filter(
-            (p) => p.category.toLowerCase() === cat.id
+            (p) => p.category.toLowerCase().replace(/\s+/g, "-") === cat.id
           ).length;
           return (
             <button
@@ -80,6 +80,7 @@ export default function CataloguePage() {
                 <ProductImage
                   src={product.images[0]}
                   alt={product.name}
+                  name={product.name}
                   category={product.category}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />

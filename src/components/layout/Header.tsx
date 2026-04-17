@@ -14,6 +14,7 @@ function goHome() {
 const navLinks = [
   { label: "HOME",          href: "/" },
   { label: "CATALOGUE",     href: "/shop" },
+  { label: "DESIGN",        href: "/design" },
   { label: "CUSTOM PRINTS", href: "/custom-prints" },
   { label: "ABOUT",         href: "/about" },
   { label: "CONTACT",       href: "/contact" },

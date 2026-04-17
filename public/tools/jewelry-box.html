@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jewelry Box Designer — Akruti</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f9f9f9; --surface: #ffffff; --border: #e4e4e7; --muted: #d4d4d8;
+      --text: #09090b; --sub: #52525b; --dim: #a1a1aa;
+      --gold: #f59e0b; --gold-dk: #d97706; --red: #ef4444; --green: #22c55e; --blue: #3b82f6;
+    }
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg); color:var(--text); height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header { flex-shrink:0; padding:10px 20px; border-bottom:1px solid var(--border);
+      background:var(--surface); display:flex; align-items:center; gap:10px; }
+    .logo { display:flex; align-items:center; gap:8px; }
+    .logo svg { color:var(--gold); }
+    .logo h1 { font-size:1rem; font-weight:600; color:var(--text); }
+    header p { font-size:0.7rem; color:var(--dim); margin-top:1px; }
+    .badge { margin-left:auto; font-size:0.65rem; color:var(--sub);
+      border:1px solid var(--muted); border-radius:99px; padding:2px 9px; }
+
+    main { flex:1; min-height:0; display:flex; }
+
+    /* ── Aside: collapsible sections, no scroll ─────────────────── */
+    aside { width:280px; flex-shrink:0; border-right:1px solid var(--border);
+      background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
+
+    .sec { border-bottom:1px solid var(--border); flex-shrink:0; }
+    .sec-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 14px; cursor:pointer; user-select:none; transition:background .12s;
+    }
+    .sec-hdr:hover { background:rgba(245,158,11,.04); }
+    .stitle { font-size:0.63rem; font-weight:700; color:var(--gold-dk);
+      text-transform:uppercase; letter-spacing:0.12em; }
+    .chev { font-size:0.6rem; color:var(--dim); transition:transform .18s; display:inline-block; }
+    .sec.closed .chev { transform:rotate(-90deg); }
+    .sec-body { padding:4px 14px 10px; }
+    .sec.closed .sec-body { display:none; }
+
+    /* ── Form controls ──────────────────────────────────────────── */
+    select { width:100%; background:var(--bg); border:1px solid var(--muted);
+      border-radius:6px; color:var(--text); font-size:0.82rem; padding:6px 8px; outline:none; cursor:pointer; }
+    select:focus { border-color:var(--gold); }
+
+    .field { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+    .field label { font-size:0.76rem; color:var(--sub); }
+    .field-r { display:flex; align-items:center; gap:4px; }
+    .field input[type=number] {
+      width:68px; background:var(--bg); border:1px solid var(--muted);
+      border-radius:6px; color:var(--text); font-size:0.82rem; padding:4px 7px;
+      text-align:right; outline:none; -moz-appearance:textfield; transition:border-color .15s; }
+    .field input[type=number]::-webkit-outer-spin-button,
+    .field input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+    .field input[type=number]:focus { border-color:var(--gold); }
+    .unit { font-size:0.7rem; color:var(--muted); width:18px; }
+
+    .dim-card { background:var(--bg); border:1px solid var(--border);
+      border-radius:7px; padding:7px 10px; margin-bottom:5px; }
+    .dim-card.accent { border-color:rgba(245,158,11,.35); background:#fffbeb; }
+    .dlabel { font-size:0.63rem; color:var(--dim); margin-bottom:2px; }
+    .dval { font-size:0.78rem; font-family:"SF Mono","Fira Code",monospace; color:var(--text); }
+    .dnote { font-size:0.64rem; color:var(--muted); margin-top:4px; }
+    .err { font-size:0.74rem; color:var(--red); }
+
+    .fit-card { border-radius:6px; padding:5px 9px; margin-top:5px; font-size:0.72rem;
+      font-weight:500; border:1px solid; line-height:1.4; }
+    .fit-ok   { background:rgba(34,197,94,.07);  border-color:#22c55e; color:#166534; }
+    .fit-warn { background:rgba(245,158,11,.07);  border-color:#f59e0b; color:#92400e; }
+    .fit-bad  { background:rgba(239,68,68,.07);   border-color:#ef4444; color:#991b1b; }
+
+    /* ── Toggle buttons ─────────────────────────────────────────── */
+    .toggle-btn { font-size:0.7rem; padding:3px 10px; border-radius:5px;
+      border:1px solid var(--muted); background:var(--surface); color:var(--sub);
+      cursor:pointer; transition:all .13s; white-space:nowrap; }
+    .toggle-btn.active { border-color:var(--gold); color:var(--gold-dk); background:rgba(245,158,11,.08); }
+    .tog-pair { display:flex; gap:4px; }
+    .tog-pair .toggle-btn { flex:1; text-align:center; }
+
+    /* ── Cross section ──────────────────────────────────────────── */
+    .xs-axis-grp { display:flex; gap:4px; margin-bottom:8px; }
+    .xs-axis-grp .toggle-btn { flex:1; text-align:center; padding:3px 4px; }
+    .xs-axis-grp .toggle-btn.active { border-color:var(--blue); color:var(--blue); background:rgba(59,130,246,.08); }
+    .xs-pos-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+    .xs-pos-label { font-size:0.74rem; color:var(--sub); }
+    .xs-pos-val { font-size:0.72rem; color:var(--blue); font-family:"SF Mono","Fira Code",monospace; }
+    input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; margin-top:2px; }
+
+    /* ── Buttons ────────────────────────────────────────────────── */
+    .btn { display:block; width:100%; padding:7px; border-radius:7px;
+      font-size:0.8rem; font-weight:600; border:none; cursor:pointer; transition:background .14s; margin-bottom:5px; }
+    .btn-gold { background:var(--gold-dk); color:#fff; }
+    .btn-gold:hover { background:var(--gold); color:#1c0f00; }
+    .btn-ghost { background:var(--muted); color:var(--sub); }
+    .btn-ghost:hover { background:#bbb; color:var(--text); }
+    .btn-blue { background:var(--blue); color:#fff; }
+    .btn-blue:hover { background:#2563eb; }
+    .btn:disabled { opacity:0.35; cursor:not-allowed; pointer-events:none; }
+    .export-list { display:flex; flex-direction:column; }
+
+    /* ── Preview panel ──────────────────────────────────────────── */
+    .preview-panel { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; position:relative; }
+    .toolbar { flex-shrink:0; padding:6px 14px; border-bottom:1px solid var(--border);
+      background:var(--surface); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .tlabel { font-size:0.72rem; color:var(--sub); font-weight:600; }
+    .legend { display:flex; gap:10px; align-items:center; }
+    .legend-item { display:flex; align-items:center; gap:4px; font-size:0.68rem; color:var(--sub); }
+    .lswatch { width:10px; height:10px; border-radius:2px; }
+    .thint { margin-left:auto; font-size:0.65rem; color:var(--muted); }
+    .toolbar-sep { width:1px; height:16px; background:var(--border); flex-shrink:0; }
+
+    #mount { flex:1; min-height:0; min-width:0; position:relative; }
+    #mount canvas { display:block !important; }
+    #loading { position:absolute; inset:0; display:flex; align-items:center;
+      justify-content:center; color:var(--dim); font-size:0.82rem; pointer-events:none; }
+
+    /* ── Floating Scene Layers panel ────────────────────────────── */
+    #elem-panel {
+      position:absolute; top:12px; right:12px; z-index:20;
+      width:256px;
+      background:rgba(255,255,255,0.88);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border:1px solid rgba(0,0,0,0.09);
+      border-radius:10px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+    }
+    #elem-panel.hidden { display:none; }
+    .fp-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 12px; cursor:grab;
+      border-bottom:1px solid rgba(0,0,0,0.07);
+    }
+    .fp-hdr:active { cursor:grabbing; }
+    .fp-title { font-size:0.63rem; font-weight:700; color:var(--gold-dk);
+      text-transform:uppercase; letter-spacing:0.12em; }
+    .fp-close { background:none; border:none; cursor:pointer; color:var(--dim);
+      font-size:13px; line-height:1; padding:2px 5px; border-radius:4px; transition:color .12s; }
+    .fp-close:hover { color:var(--red); background:rgba(239,68,68,.08); }
+    .fp-body { padding:8px 12px; max-height:340px; overflow-y:auto; }
+    .fp-body::-webkit-scrollbar { width:3px; }
+    .fp-body::-webkit-scrollbar-thumb { background:var(--muted); border-radius:2px; }
+
+    /* ── Element list ───────────────────────────────────────────── */
+    .elem-row { display:flex; align-items:center; gap:6px; padding:5px 0;
+      border-bottom:1px solid rgba(0,0,0,0.06); }
+    .elem-row:last-child { border-bottom:none; }
+    .vis-btn { background:none; border:none; cursor:pointer; color:var(--dim);
+      font-size:14px; line-height:1; padding:2px; transition:color .15s; flex-shrink:0; }
+    .vis-btn.on { color:var(--gold); }
+    .elem-name { font-size:0.73rem; color:var(--sub); flex:1; min-width:0;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mode-grp { display:flex; gap:2px; flex-shrink:0; }
+    .mode-btn { font-size:0.6rem; padding:2px 5px; border-radius:4px;
+      border:1px solid var(--muted); background:none; color:var(--dim); cursor:pointer; transition:all .12s; }
+    .mode-btn.active { border-color:var(--gold); color:var(--gold-dk); background:rgba(245,158,11,.08); }
+    .color-dot { width:16px; height:16px; border-radius:50%; border:1.5px solid var(--muted);
+      cursor:pointer; flex-shrink:0; overflow:hidden; position:relative; }
+    .color-dot input[type=color] { position:absolute; inset:-4px; width:24px; height:24px;
+      opacity:0; cursor:pointer; border:none; padding:0; }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="6 3 18 3 22 9 12 22 2 9"/><line x1="2" y1="9" x2="22" y2="9"/>
+        <line x1="12" y1="3" x2="6" y2="9"/><line x1="12" y1="3" x2="18" y2="9"/>
+      </svg>
+      <h1>Jewelry Box Designer</h1>
+    </div>
+    <p>Parametric box + tray · stackable · cross-section · STL export</p>
+  </div>
+  <span class="badge">Akruti — Design Module</span>
+</header>
+
+<main>
+<aside>
+
+  <div class="sec" id="sec-shape">
+    <div class="sec-hdr" data-sec="sec-shape">
+      <span class="stitle">Shape</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <select id="shape"><option value="rect">Rectangle</option><option value="circ">Circle</option></select>
+    </div>
+  </div>
+
+  <div class="sec" id="sec-dims">
+    <div class="sec-hdr" data-sec="sec-dims">
+      <span class="stitle">Outer Dimensions</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field" id="row-outerW">
+        <label id="lbl-outerW">Width (X)</label>
+        <div class="field-r"><input type="number" id="outerW" value="120" min="10" step="1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field" id="row-outerD">
+        <label>Depth (Y)</label>
+        <div class="field-r"><input type="number" id="outerD" value="80" min="10" step="1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field">
+        <label>Height (Z)</label>
+        <div class="field-r"><input type="number" id="outerH" value="50" min="10" step="1"><span class="unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec" id="sec-box">
+    <div class="sec-hdr" data-sec="sec-box">
+      <span class="stitle">Box Settings</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Wall Thickness</label>
+        <div class="field-r"><input type="number" id="wallT" value="3" min="0.5" step="0.5"><span class="unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-tray">
+    <div class="sec-hdr" data-sec="sec-tray">
+      <span class="stitle">Tray Settings</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Tray Height</label>
+        <div class="field-r"><input type="number" id="trayH" value="20" min="5" step="1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field">
+        <label>Tray Wall</label>
+        <div class="field-r"><input type="number" id="trayWallT" value="2" min="0.5" step="0.5"><span class="unit">mm</span></div>
+      </div>
+      <div class="field">
+        <label>Fit Clearance</label>
+        <div class="field-r"><input type="number" id="clearance" value="0.5" min="0.0" step="0.1"><span class="unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-trayouter">
+    <div class="sec-hdr" data-sec="sec-trayouter">
+      <span class="stitle">Tray Outer Dims</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Mode</label>
+        <div class="tog-pair">
+          <button class="toggle-btn active" id="trayAutoBtn">Auto-fit</button>
+          <button class="toggle-btn" id="trayManualBtn">Manual</button>
+        </div>
+      </div>
+      <div id="tray-manual-dims" style="display:none">
+        <div class="field" id="row-trayW">
+          <label id="lbl-trayW">Tray Width</label>
+          <div class="field-r"><input type="number" id="trayManualW" value="114" min="1" step="0.5"><span class="unit">mm</span></div>
+        </div>
+        <div class="field" id="row-trayD">
+          <label>Tray Depth</label>
+          <div class="field-r"><input type="number" id="trayManualD" value="74" min="1" step="0.5"><span class="unit">mm</span></div>
+        </div>
+      </div>
+      <div id="fit-status"></div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-stack">
+    <div class="sec-hdr" data-sec="sec-stack">
+      <span class="stitle">Stacking</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Stack Count</label>
+        <div class="field-r"><input type="number" id="stackCount" value="1" min="1" max="5" step="1"></div>
+      </div>
+      <div class="field">
+        <label>Ridge Height</label>
+        <div class="field-r"><input type="number" id="ridgeH" value="5" min="2" step="0.5"><span class="unit">mm</span></div>
+      </div>
+      <div class="field">
+        <label>Ridge Wall</label>
+        <div class="field-r"><input type="number" id="ridgeWall" value="2" min="0.5" step="0.5"><span class="unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-ledge">
+    <div class="sec-hdr" data-sec="sec-ledge">
+      <span class="stitle">Tray Support Ledge</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Enable ledge</label>
+        <button class="toggle-btn" id="ledgeToggle">Off</button>
+      </div>
+      <div id="ledge-params" style="display:none">
+        <div class="field">
+          <label>Height from base</label>
+          <div class="field-r"><input type="number" id="ledgeH" value="15" min="1" step="1"><span class="unit">mm</span></div>
+        </div>
+        <div class="field">
+          <label>Ledge depth</label>
+          <div class="field-r"><input type="number" id="ledgeDepth" value="3" min="0.5" step="0.5"><span class="unit">mm</span></div>
+        </div>
+        <div class="field">
+          <label>Ledge thickness</label>
+          <div class="field-r"><input type="number" id="ledgeThick" value="2" min="0.5" step="0.5"><span class="unit">mm</span></div>
+        </div>
+        <p class="dnote">Shelf inside box walls — tray rests at this height</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-lock">
+    <div class="sec-hdr" data-sec="sec-lock">
+      <span class="stitle">Lock Features</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Stack lock pegs</label>
+        <button class="toggle-btn" id="stackLockToggle">Off</button>
+      </div>
+      <div id="stacklock-params" style="display:none">
+        <div class="field"><label>Peg width</label>
+          <div class="field-r"><input type="number" id="sTabW" value="10" min="1" step="0.5"><span class="unit">mm</span></div></div>
+        <div class="field"><label>Peg height</label>
+          <div class="field-r"><input type="number" id="sTabH" value="4" min="1" step="0.5"><span class="unit">mm</span></div></div>
+        <div class="field"><label>Peg depth</label>
+          <div class="field-r"><input type="number" id="sTabD" value="4" min="1" step="0.5"><span class="unit">mm</span></div></div>
+        <p class="dnote">4 pegs on ridge top · matching holes in box above</p>
+      </div>
+      <div class="field" style="margin-top:7px">
+        <label>Tray lock tabs</label>
+        <button class="toggle-btn" id="trayLockToggle">Off</button>
+      </div>
+      <div id="traylock-params" style="display:none">
+        <div class="field"><label>Tab width</label>
+          <div class="field-r"><input type="number" id="tTabW" value="8" min="1" step="0.5"><span class="unit">mm</span></div></div>
+        <div class="field"><label>Tab height</label>
+          <div class="field-r"><input type="number" id="tTabH" value="3" min="0.5" step="0.5"><span class="unit">mm</span></div></div>
+        <div class="field"><label>Tab depth</label>
+          <div class="field-r"><input type="number" id="tTabD" value="2" min="0.5" step="0.5"><span class="unit">mm</span></div></div>
+        <div class="field"><label>Tab Z (from base)</label>
+          <div class="field-r"><input type="number" id="tTabZ" value="5" min="0" step="1"><span class="unit">mm</span></div></div>
+        <p class="dnote">Tabs on tray outer walls · matching notches in box</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec" id="sec-computed">
+    <div class="sec-hdr" data-sec="sec-computed">
+      <span class="stitle">Computed Inner Dims</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div id="dims-out"></div>
+    </div>
+  </div>
+
+  <div class="sec closed" id="sec-xsect">
+    <div class="sec-hdr" data-sec="sec-xsect">
+      <span class="stitle">Cross Section</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <button class="btn btn-ghost" id="xsectToggle">Cross Section: Off</button>
+      <div id="xsect-controls" style="display:none;margin-top:4px">
+        <div class="xs-axis-grp">
+          <button class="toggle-btn active" data-axis="x">Width</button>
+          <button class="toggle-btn" data-axis="y">Depth</button>
+          <button class="toggle-btn" data-axis="z">Height</button>
+        </div>
+        <div class="xs-pos-row">
+          <span class="xs-pos-label">Cut position</span>
+          <span class="xs-pos-val" id="xs-mm">—</span>
+        </div>
+        <input type="range" id="xs-slider" min="1" max="99" value="50">
+      </div>
+    </div>
+  </div>
+
+  <div class="sec" id="sec-export">
+    <div class="sec-hdr" data-sec="sec-export">
+      <span class="stitle">Export STL</span><span class="chev">▾</span>
+    </div>
+    <div class="sec-body">
+      <div class="export-list" id="export-list"></div>
+    </div>
+  </div>
+
+</aside>
+
+<div class="preview-panel">
+  <div class="toolbar">
+    <span class="tlabel">3D Preview</span>
+    <button class="toggle-btn active" id="toggleView">Exploded</button>
+    <div class="toolbar-sep"></div>
+    <button class="toggle-btn active" id="toggleGrid">Grid</button>
+    <button class="toggle-btn active" id="toggleElemPanel">Layers</button>
+    <div class="legend" id="legend"></div>
+    <span class="thint">Drag · Scroll zoom · Right-drag pan</span>
+  </div>
+
+  <div id="mount">
+    <div id="loading">Loading 3D renderer…</div>
+
+    <!-- Floating Scene Layers panel -->
+    <div id="elem-panel">
+      <div class="fp-hdr" id="fp-drag-handle">
+        <span class="fp-title">Scene Layers</span>
+        <button class="fp-close" id="fp-close-btn" title="Hide panel">✕</button>
+      </div>
+      <div class="fp-body">
+        <div id="elem-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ═══════════════════════════════════════════════════════════════
+// GEOMETRY HELPERS
+// ═══════════════════════════════════════════════════════════════
+function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function normV(v){const l=Math.sqrt(v[0]**2+v[1]**2+v[2]**2);return l?[v[0]/l,v[1]/l,v[2]/l]:[0,0,1];}
+function addTri(T,v1,v2,v3){
+  const a=[v2[0]-v1[0],v2[1]-v1[1],v2[2]-v1[2]],b=[v3[0]-v1[0],v3[1]-v1[1],v3[2]-v1[2]];
+  T.push({n:normV(cross(a,b)),v1,v2,v3});
+}
+function addQ(T,v1,v2,v3,v4){addTri(T,v1,v2,v3);addTri(T,v1,v3,v4);}
+
+function addSolidBox(T,x0,y0,z0,x1,y1,z1){
+  addQ(T,[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],[x1,y0,z0]);
+  addQ(T,[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]);
+  addQ(T,[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]);
+  addQ(T,[x1,y1,z0],[x0,y1,z0],[x0,y1,z1],[x1,y1,z1]);
+  addQ(T,[x0,y1,z0],[x0,y0,z0],[x0,y0,z1],[x0,y1,z1]);
+  addQ(T,[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],[x1,y0,z1]);
+}
+
+function buildBox(W,D,H,t){
+  const T=[];
+  addQ(T,[0,0,0],[0,D,0],[W,D,0],[W,0,0]);
+  addQ(T,[0,0,0],[W,0,0],[W,0,H],[0,0,H]);
+  addQ(T,[W,D,0],[0,D,0],[0,D,H],[W,D,H]);
+  addQ(T,[0,D,0],[0,0,0],[0,0,H],[0,D,H]);
+  addQ(T,[W,0,0],[W,D,0],[W,D,H],[W,0,H]);
+  addQ(T,[t,t,t],[W-t,t,t],[W-t,D-t,t],[t,D-t,t]);
+  addQ(T,[W-t,t,t],[t,t,t],[t,t,H],[W-t,t,H]);
+  addQ(T,[t,D-t,t],[W-t,D-t,t],[W-t,D-t,H],[t,D-t,H]);
+  addQ(T,[t,t,t],[t,D-t,t],[t,D-t,H],[t,t,H]);
+  addQ(T,[W-t,D-t,t],[W-t,t,t],[W-t,t,H],[W-t,D-t,H]);
+  addQ(T,[0,0,H],[W,0,H],[W,t,H],[0,t,H]);
+  addQ(T,[0,D-t,H],[W,D-t,H],[W,D,H],[0,D,H]);
+  addQ(T,[0,t,H],[t,t,H],[t,D-t,H],[0,D-t,H]);
+  addQ(T,[W-t,t,H],[W,t,H],[W,D-t,H],[W-t,D-t,H]);
+  return T;
+}
+
+function buildRidge(W,D,H,t,c,rH,rW){
+  const T=[],ox=t+c,oy=t+c,rw=W-2*t-2*c,rd=D-2*t-2*c,z0=H,z1=H+rH;
+  if(rw<=2*rW||rd<=2*rW) return T;
+  addQ(T,[ox,oy,z0],[ox+rw,oy,z0],[ox+rw,oy,z1],[ox,oy,z1]);
+  addQ(T,[ox+rw,oy+rd,z0],[ox,oy+rd,z0],[ox,oy+rd,z1],[ox+rw,oy+rd,z1]);
+  addQ(T,[ox,oy+rd,z0],[ox,oy,z0],[ox,oy,z1],[ox,oy+rd,z1]);
+  addQ(T,[ox+rw,oy,z0],[ox+rw,oy+rd,z0],[ox+rw,oy+rd,z1],[ox+rw,oy,z1]);
+  addQ(T,[ox+rW,oy+rW,z0],[ox+rW,oy+rW,z1],[ox+rw-rW,oy+rW,z1],[ox+rw-rW,oy+rW,z0]);
+  addQ(T,[ox+rw-rW,oy+rd-rW,z0],[ox+rw-rW,oy+rd-rW,z1],[ox+rW,oy+rd-rW,z1],[ox+rW,oy+rd-rW,z0]);
+  addQ(T,[ox+rW,oy+rW,z0],[ox+rW,oy+rd-rW,z0],[ox+rW,oy+rd-rW,z1],[ox+rW,oy+rW,z1]);
+  addQ(T,[ox+rw-rW,oy+rd-rW,z0],[ox+rw-rW,oy+rW,z0],[ox+rw-rW,oy+rW,z1],[ox+rw-rW,oy+rd-rW,z1]);
+  addQ(T,[ox,oy,z1],[ox+rw,oy,z1],[ox+rw,oy+rW,z1],[ox,oy+rW,z1]);
+  addQ(T,[ox,oy+rd-rW,z1],[ox+rw,oy+rd-rW,z1],[ox+rw,oy+rd,z1],[ox,oy+rd,z1]);
+  addQ(T,[ox,oy+rW,z1],[ox+rW,oy+rW,z1],[ox+rW,oy+rd-rW,z1],[ox,oy+rd-rW,z1]);
+  addQ(T,[ox+rw-rW,oy+rW,z1],[ox+rw,oy+rW,z1],[ox+rw,oy+rd-rW,z1],[ox+rw-rW,oy+rd-rW,z1]);
+  addQ(T,[ox,oy,z0],[ox,oy+rW,z0],[ox+rw,oy+rW,z0],[ox+rw,oy,z0]);
+  addQ(T,[ox,oy+rd-rW,z0],[ox,oy+rd,z0],[ox+rw,oy+rd,z0],[ox+rw,oy+rd-rW,z0]);
+  addQ(T,[ox,oy+rW,z0],[ox,oy+rd-rW,z0],[ox+rW,oy+rd-rW,z0],[ox+rW,oy+rW,z0]);
+  addQ(T,[ox+rw-rW,oy+rW,z0],[ox+rw-rW,oy+rd-rW,z0],[ox+rw,oy+rd-rW,z0],[ox+rw,oy+rW,z0]);
+  return T;
+}
+
+function buildCylinder(D,H,t,N=64){
+  const T=[],R=D/2,r=R-t;
+  for(let i=0;i<N;i++){
+    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
+    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
+    addTri(T,[0,0,0],[R*c1,R*s1,0],[R*c0,R*s0,0]);
+    addQ(T,[R*c0,R*s0,0],[R*c1,R*s1,0],[R*c1,R*s1,H],[R*c0,R*s0,H]);
+    addTri(T,[0,0,t],[r*c0,r*s0,t],[r*c1,r*s1,t]);
+    addQ(T,[r*c0,r*s0,t],[r*c0,r*s0,H],[r*c1,r*s1,H],[r*c1,r*s1,t]);
+    addQ(T,[r*c0,r*s0,H],[R*c0,R*s0,H],[R*c1,R*s1,H],[r*c1,r*s1,H]);
+  }
+  return T;
+}
+
+function buildCircleRidge(D,H,t,c,rH,rW,N=64){
+  const T=[],R=(D/2)-t-c,z0=H,z1=H+rH,ri=R-rW;
+  if(ri<=0) return T;
+  for(let i=0;i<N;i++){
+    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
+    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
+    addQ(T,[R*c0,R*s0,z0],[R*c1,R*s1,z0],[R*c1,R*s1,z1],[R*c0,R*s0,z1]);
+    addQ(T,[ri*c0,ri*s0,z0],[ri*c0,ri*s0,z1],[ri*c1,ri*s1,z1],[ri*c1,ri*s1,z0]);
+    addQ(T,[ri*c0,ri*s0,z1],[R*c0,R*s0,z1],[R*c1,R*s1,z1],[ri*c1,ri*s1,z1]);
+    addQ(T,[ri*c0,ri*s0,z0],[ri*c1,ri*s1,z0],[R*c1,R*s1,z0],[R*c0,R*s0,z0]);
+  }
+  return T;
+}
+
+function buildLedges(W,D,H,t,lH,lD,lT){
+  const T=[];
+  if(lH+lT>H-t||lD<=0||lT<=0||lD>=(W-2*t)/2||lD>=(D-2*t)/2) return T;
+  addSolidBox(T,t,     t,      lH, W-t,   t+lD,   lH+lT);
+  addSolidBox(T,t,     D-t-lD, lH, W-t,   D-t,    lH+lT);
+  addSolidBox(T,t,     t+lD,   lH, t+lD,  D-t-lD, lH+lT);
+  addSolidBox(T,W-t-lD,t+lD,   lH, W-t,   D-t-lD, lH+lT);
+  return T;
+}
+
+function buildCircleLedge(D,H,t,lH,lD,lT,N=64){
+  const T=[],R=D/2-t,r=R-lD,z0=lH,z1=lH+lT;
+  if(r<=0||z1>H-t) return T;
+  for(let i=0;i<N;i++){
+    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
+    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
+    addQ(T,[r*c0,r*s0,z0],[r*c0,r*s0,z1],[r*c1,r*s1,z1],[r*c1,r*s1,z0]);
+    addQ(T,[r*c0,r*s0,z1],[R*c0,R*s0,z1],[R*c1,R*s1,z1],[r*c1,r*s1,z1]);
+    addQ(T,[r*c0,r*s0,z0],[r*c1,r*s1,z0],[R*c1,R*s1,z0],[R*c0,R*s0,z0]);
+  }
+  return T;
+}
+
+function buildStackTabs(W,D,boxH,t,c,rgH,tW,tH,tD){
+  const T=[],ox=t+c,oy=t+c,rw=W-2*t-2*c,rd=D-2*t-2*c,z0=boxH+rgH,z1=z0+tH;
+  if(rw<=0||rd<=0||tH<=0||tW<=0||tD<=0) return T;
+  const hw=tW/2;
+  addSolidBox(T,ox+rw/2-hw, oy,       z0, ox+rw/2+hw, oy+tD,    z1);
+  addSolidBox(T,ox+rw/2-hw, oy+rd-tD, z0, ox+rw/2+hw, oy+rd,    z1);
+  addSolidBox(T,ox,          oy+rd/2-hw,z0, ox+tD,     oy+rd/2+hw,z1);
+  addSolidBox(T,ox+rw-tD,   oy+rd/2-hw,z0, ox+rw,     oy+rd/2+hw,z1);
+  return T;
+}
+
+function buildCircleStackTabs(D,boxH,t,c,rgH,tW,tH,tD){
+  const T=[],R=(D/2)-t-c,z0=boxH+rgH,z1=z0+tH,hw=tW/2,hd=tD/2;
+  if(R<=0||tH<=0) return T;
+  addSolidBox(T,-hw, R-hd,   z0, hw,  R+hd,   z1);
+  addSolidBox(T,-hw,-R-hd,   z0, hw, -R+hd,   z1);
+  addSolidBox(T, R-hd,-hw,   z0, R+hd, hw,    z1);
+  addSolidBox(T,-R-hd,-hw,   z0,-R+hd, hw,    z1);
+  return T;
+}
+
+function buildTrayTabs(tOW,tOD,trayH,tabZ,tW,tH,tD){
+  const T=[],hw=tW/2,z0=tabZ,z1=tabZ+tH;
+  if(z1>trayH||tW<=0||tH<=0||tD<=0) return T;
+  addSolidBox(T,tOW/2-hw,  -tD,      z0, tOW/2+hw, 0,        z1);
+  addSolidBox(T,tOW/2-hw,   tOD,     z0, tOW/2+hw, tOD+tD,   z1);
+  addSolidBox(T,-tD,         tOD/2-hw,z0, 0,        tOD/2+hw, z1);
+  addSolidBox(T,tOW,         tOD/2-hw,z0, tOW+tD,   tOD/2+hw, z1);
+  return T;
+}
+
+function buildCircleTrayTabs(tOD,trayH,tabZ,tW,tH,tD){
+  const T=[],R=tOD/2,hw=tW/2,z0=tabZ,z1=tabZ+tH;
+  if(z1>trayH) return T;
+  addSolidBox(T,-hw, R,   z0, hw, R+tD, z1);
+  addSolidBox(T,-hw,-R-tD,z0, hw,-R,   z1);
+  addSolidBox(T, R,  -hw, z0, R+tD,hw,  z1);
+  addSolidBox(T,-R-tD,-hw,z0,-R,  hw,   z1);
+  return T;
+}
+
+function trisToGeo(tris){
+  if(!tris||tris.length===0) return new THREE.BufferGeometry();
+  const pos=new Float32Array(tris.length*9),nor=new Float32Array(tris.length*9);
+  tris.forEach(({n,v1,v2,v3},i)=>{
+    const b=i*9; let j=0;
+    for(const[x,y,z]of[v1,v2,v3]){pos[b+j*3]=x;pos[b+j*3+1]=z;pos[b+j*3+2]=y;j++;}
+    for(let k=0;k<3;k++){nor[b+k*3]=n[0];nor[b+k*3+1]=n[2];nor[b+k*3+2]=n[1];}
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  return g;
+}
+
+function downloadSTL(tris,filename){
+  const buf=new ArrayBuffer(84+50*tris.length),dv=new DataView(buf);
+  dv.setUint32(80,tris.length,true); let o=84;
+  for(const{n,v1,v2,v3}of tris){
+    for(const c of n){dv.setFloat32(o,c,true);o+=4;}
+    for(const v of[v1,v2,v3])for(const c of v){dv.setFloat32(o,c,true);o+=4;}
+    dv.setUint16(o,0,true);o+=2;
+  }
+  const url=URL.createObjectURL(new Blob([buf],{type:'application/octet-stream'}));
+  Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const S={
+  shape:'rect',
+  outerW:120, outerD:80, outerH:50, wallT:3,
+  trayH:20, trayWallT:2, clearance:0.5,
+  trayManual:false, trayManualW:0, trayManualD:0,
+  stackCount:1, ridgeH:5, ridgeWall:2,
+  exploded:true,
+  ledge:{ on:false, height:15, depth:3, thick:2 },
+  stackLock:{ on:false, tabW:10, tabH:4, tabD:4 },
+  trayLock:{ on:false, tabW:8, tabH:3, tabD:2, tabZ:5 },
+  xsect:{ on:false, axis:'x', pos:50 },
+  elems:{
+    tray:{ visible:true, mode:'solid', color:'#f59e0b' },
+    box0:{ visible:true, mode:'solid', color:'#d97706' },
+  }
+};
+
+function getElem(key){
+  if(!S.elems[key]){
+    let color='#d97706';
+    if(key==='tray'||key==='traytabs') color='#f59e0b';
+    if(key.startsWith('ledge')) color='#60a5fa';
+    if(key.startsWith('tabs'))  color='#a78bfa';
+    if(key==='traytabs')        color='#f472b6';
+    S.elems[key]={visible:true,mode:'solid',color};
+  }
+  return S.elems[key];
+}
+
+function derived(){
+  const{outerW:W,outerD:D,outerH:H,wallT:t,trayH,trayWallT:tw,clearance:c,shape}=S;
+  const isC=shape==='circ';
+  const iW=W-2*t, iD=isC?iW:D-2*t, iH=H-t;
+  const tOW=iW-2*c, tOD=isC?tOW:iD-2*c;
+  const tIW=tOW-2*tw, tID=isC?tIW:tOD-2*tw, tIH=trayH-tw;
+  const ok=[iW,iD,iH,tOW,tOD,tIW,tID,tIH].every(v=>v>0);
+  return{iW,iD,iH,tOW,tOD,tIW,tID,tIH,ok};
+}
+
+function getActiveTrayDims(d){
+  const isC=S.shape==='circ';
+  if(!S.trayManual) return{tOW:d.tOW,tOD:d.tOD};
+  const tOW=S.trayManualW||d.tOW;
+  const tOD=isC?tOW:(S.trayManualD||d.tOD);
+  return{tOW,tOD};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THREE.JS SCENE  — white background
+// ═══════════════════════════════════════════════════════════════
+const mount=document.getElementById('mount');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setClearColor(0xf9f9f9);          // white bg
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled=true;
+mount.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0xf9f9f9,700,1500); // fog matches bg
+
+const camera=new THREE.PerspectiveCamera(42,1,0.5,6000);
+camera.position.set(250,180,260);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.80));
+const sun=new THREE.DirectionalLight(0xffffff,1.0);
+sun.position.set(200,380,150); sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=sun.shadow.camera.bottom=-250;
+sun.shadow.camera.right=sun.shadow.camera.top=250;
+sun.shadow.camera.near=10; sun.shadow.camera.far=900;
+scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffd080,0.20); fill.position.set(-120,60,-100); scene.add(fill);
+const back=new THREE.DirectionalLight(0xffffff,0.12); back.position.set(0,-200,0); scene.add(back);
+
+// Grid — store refs for toggle
+const gridHelper=new THREE.GridHelper(700,28,0xcccccc,0xe0e0e0);
+scene.add(gridHelper);
+const floorMesh=new THREE.Mesh(
+  new THREE.PlaneGeometry(700,700),
+  new THREE.ShadowMaterial({opacity:0.08})
+);
+floorMesh.rotation.x=-Math.PI/2; floorMesh.receiveShadow=true; scene.add(floorMesh);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=0.065;
+controls.minDistance=30; controls.maxDistance=1000;
+controls.maxPolarAngle=Math.PI*0.82; controls.target.set(0,30,0); controls.update();
+
+new ResizeObserver(()=>{
+  const w=mount.clientWidth,h=mount.clientHeight; if(!w||!h) return;
+  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
+}).observe(mount);
+
+(function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);})();
+document.getElementById('loading').style.display='none';
+
+// ═══════════════════════════════════════════════════════════════
+// CROSS-SECTION
+// ═══════════════════════════════════════════════════════════════
+function getClipPlane(){
+  const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
+  const isC=shape==='circ', totalD=isC?W:D, totalH=SC*H+(SC-1)*rH, p=xsect.pos/100;
+  if(xsect.axis==='x') return new THREE.Plane(new THREE.Vector3(-1,0,0),-W/2+p*W);
+  if(xsect.axis==='y') return new THREE.Plane(new THREE.Vector3(0,0,-1),-totalD/2+p*totalD);
+  return new THREE.Plane(new THREE.Vector3(0,-1,0),p*totalH);
+}
+
+let capMesh=null;
+function updateCapPlane(){
+  if(capMesh){scene.remove(capMesh);capMesh.geometry.dispose();capMesh.material.dispose();capMesh=null;}
+  if(!S.xsect.on) return;
+  const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
+  const isC=shape==='circ',totalD=isC?W:D,totalH=SC*H+(SC-1)*rH;
+  const size=Math.max(W,totalD,totalH)*1.6, p=xsect.pos/100;
+  capMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(size,size),
+    new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:0.08,side:THREE.DoubleSide,depthWrite:false})
+  );
+  if(xsect.axis==='x'){capMesh.rotation.y=-Math.PI/2;capMesh.position.set(-W/2+p*W,totalH/2,0);}
+  else if(xsect.axis==='y'){capMesh.position.set(0,totalH/2,-totalD/2+p*totalD);}
+  else{capMesh.rotation.x=Math.PI/2;capMesh.position.set(0,p*totalH,0);}
+  scene.add(capMesh);
+}
+
+function updateClip(){
+  const planes=S.xsect.on?[getClipPlane()]:[];
+  Object.values(meshes).forEach(m=>{
+    if(!m) return;
+    if(m.material) m.material.clippingPlanes=planes;
+    if(m.userData.edges?.material) m.userData.edges.material.clippingPlanes=planes;
+  });
+}
+
+function updateXsectLabel(){
+  const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
+  const isC=shape==='circ',totalD=isC?W:D,totalH=SC*H+(SC-1)*rH,p=xsect.pos/100;
+  const el=document.getElementById('xs-mm'); if(!el) return;
+  if(!S.xsect.on){el.textContent='—';return;}
+  const mm=xsect.axis==='x'?p*W:xsect.axis==='y'?p*totalD:p*totalH;
+  const lbl=xsect.axis==='x'?'from left':xsect.axis==='y'?'from front':'from base';
+  el.textContent=`${mm.toFixed(1)} mm ${lbl}`;
+  document.querySelectorAll('[data-axis]').forEach(b=>b.classList.toggle('active',b.dataset.axis===xsect.axis));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FIT INDICATOR
+// ═══════════════════════════════════════════════════════════════
+function updateFitIndicator(d){
+  const el=document.getElementById('fit-status'); if(!el) return;
+  const isC=S.shape==='circ';
+  const{tOW,tOD}=getActiveTrayDims(d);
+  const gW=(d.iW-tOW)/2;
+  const gD=isC?gW:(d.iD-tOD)/2;
+  const minGap=Math.min(gW,gD);
+  const eps=0.05;
+  if(minGap<-eps){
+    const over=[];
+    if(gW<-eps) over.push(`W +${(-gW*2).toFixed(1)} mm oversize`);
+    if(!isC&&gD<-eps) over.push(`D +${(-gD*2).toFixed(1)} mm oversize`);
+    el.className='fit-card fit-bad';
+    el.textContent=`⚠ Tray overhangs — ${over.join(', ')} — won't fit`;
+  } else if(minGap<eps){
+    el.className='fit-card fit-ok';
+    el.textContent='✓ Zero-gap press fit';
+  } else if(isC){
+    el.className='fit-card fit-ok';
+    el.textContent=`✓ ${gW.toFixed(2)} mm/side clearance`;
+  } else {
+    const cls=gW>1||gD>1?'fit-warn':'fit-ok';
+    const sym=cls==='fit-warn'?'⬛ Loose':'✓';
+    el.className=`fit-card ${cls}`;
+    el.textContent=`${sym} W: ${gW.toFixed(2)} mm/side · D: ${gD.toFixed(2)} mm/side`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESH MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+const meshes={};
+
+function getMat(key){
+  const e=getElem(key),isWire=e.mode==='wire',isXray=e.mode==='xray';
+  return new THREE.MeshStandardMaterial({
+    color:new THREE.Color(e.color), metalness:0.05, roughness:0.65,
+    wireframe:isWire, transparent:isXray, opacity:isXray?0.28:1,
+    depthWrite:!isXray, side:THREE.DoubleSide,
+    clippingPlanes:S.xsect.on?[getClipPlane()]:[]
+  });
+}
+
+function getEdgeMat(key){
+  return new THREE.LineBasicMaterial({
+    color:new THREE.Color(getElem(key).color).multiplyScalar(0.55),
+    clippingPlanes:S.xsect.on?[getClipPlane()]:[]
+  });
+}
+
+function getMesh(key){
+  if(!meshes[key]){
+    const m=new THREE.Mesh(new THREE.BufferGeometry(),getMat(key));
+    m.castShadow=true; m.receiveShadow=true; m.userData.edges=null;
+    scene.add(m); meshes[key]=m;
+  }
+  return meshes[key];
+}
+
+function removeMesh(key){
+  if(!meshes[key]) return;
+  const m=meshes[key];
+  scene.remove(m); m.geometry.dispose(); m.material.dispose();
+  if(m.userData.edges){m.userData.edges.geometry.dispose();m.userData.edges.material.dispose();}
+  delete meshes[key];
+}
+
+function applyMaterial(key){
+  const m=meshes[key]; if(!m) return;
+  m.material.dispose(); m.material=getMat(key);
+  const e=m.userData.edges;
+  if(e){e.material.dispose();e.material=getEdgeMat(key);e.visible=(getElem(key).mode==='solid');}
+}
+
+function refreshEdgeGeo(key){
+  const m=meshes[key]; if(!m) return;
+  if(m.userData.edges){
+    m.remove(m.userData.edges);
+    m.userData.edges.geometry.dispose(); m.userData.edges.material.dispose();
+    m.userData.edges=null;
+  }
+  const pos=m.geometry.attributes.position;
+  if(!pos||pos.count===0) return;
+  try{
+    const edges=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,20),getEdgeMat(key));
+    edges.visible=(getElem(key).mode==='solid');
+    m.userData.edges=edges; m.add(edges);
+  }catch(e){ console.warn('EdgeGeo failed for',key,e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD / UPDATE SCENE
+// ═══════════════════════════════════════════════════════════════
+function btTris(W,D,H,t){ return S.shape==='circ'?buildCylinder(W,H,t):buildBox(W,D,H,t); }
+function brTris(W,D,H,t,c,rH,rW){ return S.shape==='circ'?buildCircleRidge(W,H,t,c,rH,rW):buildRidge(W,D,H,t,c,rH,rW); }
+
+function setMesh(key,tris,xOff,zOff,yPos){
+  const isC=S.shape==='circ';
+  const m=getMesh(key);
+  const geo=trisToGeo(tris);
+  if(!isC) geo.translate(xOff,0,zOff);
+  m.geometry.dispose(); m.geometry=geo;
+  refreshEdgeGeo(key);
+  m.position.set(0,yPos,0);
+  m.visible=getElem(key).visible;
+}
+
+function updateScene(){
+  try{ _updateScene(); }catch(err){ console.error('updateScene error:',err); }
+}
+
+function _updateScene(){
+  const d=derived();
+  const{outerW:W,outerD:D,outerH:H,wallT:t,trayH,trayWallT:tw,
+        clearance:c,stackCount:SC,ridgeH:rH,ridgeWall:rW,shape,
+        ledge:L,stackLock:SL,trayLock:TL}=S;
+  const isC=shape==='circ';
+  const{tOW,tOD}=getActiveTrayDims(d);
+
+  const dimEl=document.getElementById('dims-out');
+  if(!d.ok){
+    dimEl.innerHTML=`<p class="err">Invalid — walls exceed outer dimensions.</p>`;
+  } else {
+    dimEl.innerHTML=`
+      <div class="dim-card accent">
+        <div class="dlabel">Box Inner Cavity</div>
+        <div class="dval">${isC?`⌀${d.iW.toFixed(1)}`:`${d.iW.toFixed(1)} × ${d.iD.toFixed(1)}`} × ${d.iH.toFixed(1)} mm</div>
+      </div>
+      <div class="dim-card">
+        <div class="dlabel">Tray Outer${S.trayManual?' (manual)':''}</div>
+        <div class="dval">${isC?`⌀${tOW.toFixed(1)}`:`${tOW.toFixed(1)} × ${tOD.toFixed(1)}`} × ${trayH} mm</div>
+      </div>
+      <div class="dim-card">
+        <div class="dlabel">Tray Inner Cavity</div>
+        <div class="dval">${isC?`⌀${(tOW-2*tw).toFixed(1)}`:`${(tOW-2*tw).toFixed(1)} × ${(tOD-2*tw).toFixed(1)}`} × ${(trayH-tw).toFixed(1)} mm</div>
+      </div>
+      <p class="dnote">Clearance ${c} mm/side · stack ridge fits with same clearance</p>`;
+  }
+  updateFitIndicator(d);
+
+  const validKeys=new Set(['tray']);
+  for(let i=0;i<SC;i++){
+    validKeys.add(`box${i}`);
+    if(L.on) validKeys.add(`ledge${i}`);
+    if(i<SC-1){
+      validKeys.add(`ridge${i}`);
+      if(SL.on) validKeys.add(`tabs${i}`);
+    }
+  }
+  if(TL.on) validKeys.add('traytabs');
+  Object.keys(meshes).forEach(k=>{ if(!validKeys.has(k)) removeMesh(k); });
+
+  if(!d.ok) return;
+
+  for(let i=0;i<SC;i++){
+    const yAssembled=i*H;
+    const yExploded=i*(H+rH+30);
+    const yE=S.exploded?yExploded:yAssembled;
+    setMesh(`box${i}`, btTris(W,D,H,t), -W/2, -D/2, yE);
+    if(L.on){
+      const lTris=isC?buildCircleLedge(W,H,t,L.height,L.depth,L.thick)
+                     :buildLedges(W,D,H,t,L.height,L.depth,L.thick);
+      setMesh(`ledge${i}`, lTris, -W/2, -D/2, yE);
+    }
+    if(i<SC-1){
+      setMesh(`ridge${i}`, brTris(W,D,H,t,c,rH,rW), -W/2, -D/2, yE);
+      if(SL.on){
+        const sTris=isC?buildCircleStackTabs(W,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD)
+                       :buildStackTabs(W,D,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD);
+        setMesh(`tabs${i}`, sTris, -W/2, -D/2, yE);
+      }
+    }
+  }
+
+  const gapW=(d.iW-tOW)/2;
+  const gapD=isC?gapW:(d.iD-tOD)/2;
+  const trayOverhangs=gapW<-0.05||(!isC&&gapD<-0.05);
+  const lastBoxY=S.exploded?(SC-1)*(H+rH+30):(SC-1)*H;
+  let trayY;
+  if(S.exploded)           trayY=lastBoxY+H+28;
+  else if(trayOverhangs)   trayY=lastBoxY+H;
+  else if(L.on&&L.height>0) trayY=lastBoxY+L.height;
+  else                     trayY=Math.max(lastBoxY+(H-trayH),lastBoxY+t);
+
+  setMesh('tray', btTris(tOW,isC?tOW:tOD,trayH,tw), -tOW/2, -(isC?tOW:tOD)/2, trayY);
+  if(TL.on){
+    const tTris=isC?buildCircleTrayTabs(tOW,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD)
+                   :buildTrayTabs(tOW,tOD,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD);
+    setMesh('traytabs', tTris, -tOW/2, -(isC?tOW:tOD)/2, trayY);
+  }
+
+  updateClip(); updateCapPlane(); updateXsectLabel();
+  rebuildElemUI(); rebuildExportUI(d); rebuildLegend();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ELEMENT LIST UI  (inside floating panel)
+// ═══════════════════════════════════════════════════════════════
+const EYE_ON =`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function rebuildElemUI(){
+  const SC=S.stackCount,{ledge:L,stackLock:SL,trayLock:TL}=S;
+  const keys=[],names={tray:'Tray',traytabs:'Tray Locks'};
+  for(let i=0;i<SC;i++){
+    keys.push(`box${i}`); names[`box${i}`]=SC===1?'Box':`Box ${i+1}`;
+    if(L.on){ keys.push(`ledge${i}`); names[`ledge${i}`]=SC===1?'Ledge':`Ledge ${i+1}`; }
+    if(i<SC-1){
+      keys.push(`ridge${i}`); names[`ridge${i}`]=`Stack Ridge ${i+1}→${i+2}`;
+      if(SL.on){ keys.push(`tabs${i}`); names[`tabs${i}`]=`Lock Pegs ${i+1}→${i+2}`; }
+    }
+  }
+  keys.push('tray');
+  if(TL.on) keys.push('traytabs');
+
+  const list=document.getElementById('elem-list'); list.innerHTML='';
+  keys.forEach(key=>{
+    const e=getElem(key);
+    const row=document.createElement('div'); row.className='elem-row';
+    row.innerHTML=`
+      <button class="vis-btn ${e.visible?'on':''}" data-key="${key}">${e.visible?EYE_ON:EYE_OFF}</button>
+      <span class="elem-name">${names[key]||key}</span>
+      <div class="mode-grp">
+        <button class="mode-btn ${e.mode==='solid'?'active':''}" data-key="${key}" data-mode="solid">S</button>
+        <button class="mode-btn ${e.mode==='wire'?'active':''}"  data-key="${key}" data-mode="wire">W</button>
+        <button class="mode-btn ${e.mode==='xray'?'active':''}"  data-key="${key}" data-mode="xray">T</button>
+      </div>
+      <div class="color-dot" style="background:${e.color}">
+        <input type="color" value="${e.color}" data-key="${key}">
+      </div>`;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.vis-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const k=btn.dataset.key; getElem(k).visible=!getElem(k).visible;
+    if(meshes[k]) meshes[k].visible=getElem(k).visible; rebuildElemUI();
+  }));
+  list.querySelectorAll('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    getElem(btn.dataset.key).mode=btn.dataset.mode; applyMaterial(btn.dataset.key); rebuildElemUI();
+  }));
+  list.querySelectorAll('input[type=color]').forEach(inp=>inp.addEventListener('input',()=>{
+    const k=inp.dataset.key; getElem(k).color=inp.value;
+    inp.closest('.color-dot').style.background=inp.value; applyMaterial(k);
+  }));
+}
+
+function rebuildLegend(){
+  const lg=document.getElementById('legend'); lg.innerHTML='';
+  const SC=S.stackCount; const keys=[]; const names={tray:'Tray'};
+  for(let i=0;i<SC;i++){keys.push(`box${i}`);names[`box${i}`]=SC===1?'Box':`Box ${i+1}`;}
+  keys.push('tray');
+  keys.forEach(k=>{
+    const e=getElem(k); if(!e.visible) return;
+    const d=document.createElement('div'); d.className='legend-item';
+    d.innerHTML=`<div class="lswatch" style="background:${e.color}"></div>${names[k]||k}`;
+    lg.appendChild(d);
+  });
+}
+
+function rebuildExportUI(d){
+  const SC=S.stackCount,{outerW:W,outerD:D,outerH:H,wallT:t,ridgeH:rH,ridgeWall:rW,
+        clearance:c,shape,trayH,ledge:L,stackLock:SL,trayLock:TL}=S;
+  const isC=shape==='circ';
+  const{tOW,tOD}=getActiveTrayDims(d);
+  const list=document.getElementById('export-list'); list.innerHTML='';
+
+  for(let i=0;i<SC;i++){
+    const isLast=i===SC-1;
+    const btn=document.createElement('button');
+    btn.className='btn btn-gold';
+    btn.textContent=SC===1?'Download Box STL':`Download Box ${i+1} STL`;
+    btn.disabled=!d.ok;
+    btn.addEventListener('click',()=>{
+      const tris=[...btTris(W,D,H,t)];
+      if(!isLast) tris.push(...brTris(W,D,H,t,c,rH,rW));
+      if(L.on) tris.push(...(isC?buildCircleLedge(W,H,t,L.height,L.depth,L.thick):buildLedges(W,D,H,t,L.height,L.depth,L.thick)));
+      if(!isLast&&SL.on) tris.push(...(isC?buildCircleStackTabs(W,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD):buildStackTabs(W,D,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD)));
+      downloadSTL(tris,isC?`box-circ-d${W}h${H}mm.stl`:`box-${W}x${D}x${H}mm${isLast?'':'-ridge'}.stl`);
+    });
+    list.appendChild(btn);
+  }
+
+  const trayBtn=document.createElement('button');
+  trayBtn.className='btn btn-ghost'; trayBtn.textContent='Download Tray STL'; trayBtn.disabled=!d.ok;
+  trayBtn.addEventListener('click',()=>{
+    const tris=[...btTris(tOW,isC?tOW:tOD,trayH,S.trayWallT)];
+    if(TL.on) tris.push(...(isC?buildCircleTrayTabs(tOW,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD):buildTrayTabs(tOW,tOD,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD)));
+    downloadSTL(tris,isC?`tray-circ-d${tOW.toFixed(1)}h${trayH}mm.stl`:`tray-${tOW.toFixed(1)}x${tOD.toFixed(1)}x${trayH}mm.stl`);
+  });
+  list.appendChild(trayBtn);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLLAPSIBLE SECTIONS
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.sec-hdr').forEach(hdr=>{
+  hdr.addEventListener('click',()=>{
+    hdr.closest('.sec').classList.toggle('closed');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// FLOATING PANEL — drag + close/show
+// ═══════════════════════════════════════════════════════════════
+const elemPanel=document.getElementById('elem-panel');
+const dragHandle=document.getElementById('fp-drag-handle');
+const closeBtn=document.getElementById('fp-close-btn');
+const toggleElemBtn=document.getElementById('toggleElemPanel');
+
+let dragging=false, dragOffX=0, dragOffY=0;
+
+dragHandle.addEventListener('mousedown',e=>{
+  if(e.target===closeBtn) return;
+  dragging=true;
+  const r=elemPanel.getBoundingClientRect();
+  dragOffX=e.clientX-r.left; dragOffY=e.clientY-r.top;
+  e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  const mr=mount.getBoundingClientRect();
+  let x=e.clientX-mr.left-dragOffX;
+  let y=e.clientY-mr.top-dragOffY;
+  x=Math.max(0,Math.min(x, mr.width-elemPanel.offsetWidth));
+  y=Math.max(0,Math.min(y, mr.height-elemPanel.offsetHeight));
+  elemPanel.style.left=x+'px'; elemPanel.style.top=y+'px'; elemPanel.style.right='auto';
+});
+document.addEventListener('mouseup',()=>{ dragging=false; });
+
+closeBtn.addEventListener('click',()=>{
+  elemPanel.classList.add('hidden');
+  toggleElemBtn.classList.remove('active');
+});
+toggleElemBtn.addEventListener('click',()=>{
+  const hidden=elemPanel.classList.toggle('hidden');
+  toggleElemBtn.classList.toggle('active',!hidden);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// GRID TOGGLE
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('toggleGrid').addEventListener('click',function(){
+  const vis=!gridHelper.visible;
+  gridHelper.visible=vis;
+  floorMesh.visible=vis;
+  this.classList.toggle('active',vis);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT WIRING
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('shape').addEventListener('change',e=>{
+  S.shape=e.target.value;
+  const isC=S.shape==='circ';
+  document.getElementById('row-outerD').style.display=isC?'none':'flex';
+  document.getElementById('row-trayD').style.display=isC?'none':'flex';
+  document.getElementById('lbl-outerW').textContent=isC?'Diameter':'Width (X)';
+  document.getElementById('lbl-trayW').textContent=isC?'Tray Diameter':'Tray Width';
+  updateScene();
+});
+
+['outerW','outerD','outerH','wallT','trayH','trayWallT','clearance','stackCount','ridgeH','ridgeWall'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value); if(!isNaN(v)&&v>0){S[id]=v;updateScene();}
+  });
+});
+
+document.getElementById('toggleView').addEventListener('click',function(){
+  S.exploded=!S.exploded; this.textContent=S.exploded?'Exploded':'Assembled';
+  this.classList.toggle('active',S.exploded); updateScene();
+});
+
+document.getElementById('trayAutoBtn').addEventListener('click',()=>{
+  S.trayManual=false;
+  document.getElementById('trayAutoBtn').classList.add('active');
+  document.getElementById('trayManualBtn').classList.remove('active');
+  document.getElementById('tray-manual-dims').style.display='none';
+  updateScene();
+});
+document.getElementById('trayManualBtn').addEventListener('click',()=>{
+  const d=derived();
+  if(!S.trayManualW){ S.trayManualW=d.tOW; document.getElementById('trayManualW').value=d.tOW.toFixed(1); }
+  if(!S.trayManualD){ S.trayManualD=d.tOD; document.getElementById('trayManualD').value=d.tOD.toFixed(1); }
+  S.trayManual=true;
+  document.getElementById('trayManualBtn').classList.add('active');
+  document.getElementById('trayAutoBtn').classList.remove('active');
+  document.getElementById('tray-manual-dims').style.display='block';
+  updateScene();
+});
+document.getElementById('trayManualW').addEventListener('input',function(){
+  const v=parseFloat(this.value); if(!isNaN(v)&&v>0){S.trayManualW=v;updateScene();}
+});
+document.getElementById('trayManualD').addEventListener('input',function(){
+  const v=parseFloat(this.value); if(!isNaN(v)&&v>0){S.trayManualD=v;updateScene();}
+});
+
+document.getElementById('ledgeToggle').addEventListener('click',function(){
+  S.ledge.on=!S.ledge.on; this.textContent=S.ledge.on?'On':'Off';
+  this.classList.toggle('active',S.ledge.on);
+  document.getElementById('ledge-params').style.display=S.ledge.on?'block':'none';
+  updateScene();
+});
+[['ledgeH','height'],['ledgeDepth','depth'],['ledgeThick','thick']].forEach(([id,k])=>{
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value); if(!isNaN(v)&&v>0){S.ledge[k]=v;if(S.ledge.on)updateScene();}
+  });
+});
+
+document.getElementById('stackLockToggle').addEventListener('click',function(){
+  S.stackLock.on=!S.stackLock.on; this.textContent=S.stackLock.on?'On':'Off';
+  this.classList.toggle('active',S.stackLock.on);
+  document.getElementById('stacklock-params').style.display=S.stackLock.on?'block':'none';
+  updateScene();
+});
+[['sTabW','tabW'],['sTabH','tabH'],['sTabD','tabD']].forEach(([id,k])=>{
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value); if(!isNaN(v)&&v>0){S.stackLock[k]=v;if(S.stackLock.on)updateScene();}
+  });
+});
+
+document.getElementById('trayLockToggle').addEventListener('click',function(){
+  S.trayLock.on=!S.trayLock.on; this.textContent=S.trayLock.on?'On':'Off';
+  this.classList.toggle('active',S.trayLock.on);
+  document.getElementById('traylock-params').style.display=S.trayLock.on?'block':'none';
+  updateScene();
+});
+[['tTabW','tabW'],['tTabH','tabH'],['tTabD','tabD'],['tTabZ','tabZ']].forEach(([id,k])=>{
+  document.getElementById(id).addEventListener('input',function(){
+    const v=parseFloat(this.value); if(!isNaN(v)){S.trayLock[k]=v;if(S.trayLock.on)updateScene();}
+  });
+});
+
+document.getElementById('xsectToggle').addEventListener('click',function(){
+  S.xsect.on=!S.xsect.on; this.textContent=`Cross Section: ${S.xsect.on?'On':'Off'}`;
+  this.className=`btn ${S.xsect.on?'btn-blue':'btn-ghost'}`;
+  document.getElementById('xsect-controls').style.display=S.xsect.on?'block':'none';
+  updateClip(); updateCapPlane(); updateXsectLabel();
+});
+document.querySelectorAll('[data-axis]').forEach(btn=>btn.addEventListener('click',()=>{
+  S.xsect.axis=btn.dataset.axis;
+  document.querySelectorAll('[data-axis]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(S.xsect.on){updateClip();updateCapPlane();updateXsectLabel();}
+}));
+document.getElementById('xs-slider').addEventListener('input',function(){
+  S.xsect.pos=parseInt(this.value);
+  if(S.xsect.on){updateClip();updateCapPlane();updateXsectLabel();}
+});
+
+// First render
+updateScene();
+</script>
+</body>
+</html>

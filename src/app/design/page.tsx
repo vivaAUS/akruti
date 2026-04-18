@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Box } from "lucide-react";
+import { Box, Shapes } from "lucide-react";
 
 const tools = [
   {
@@ -9,6 +9,14 @@ const tools = [
     tagline: "Parametric box designer",
     detail:
       "Design custom jewelry boxes with adjustable dimensions, stackable trays, and interlocking grooves. Export directly to STL for 3D printing.",
+  },
+  {
+    href: "/design/designer",
+    icon: Shapes,
+    label: "General Designer",
+    tagline: "Parts · lids · hinges · textures",
+    detail:
+      "Compose 3D-printable objects from boxes, cylinders, snap/screw lids, hinges, and face textures. Toggle the A1 mini build-plate guide and export print-ready STL.",
   },
 ];
 

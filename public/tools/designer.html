@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akruti Designer — General 3D Parts</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f9f9f9; --surface:#fff; --border:#e4e4e7; --muted:#d4d4d8;
+      --text:#09090b; --sub:#52525b; --dim:#a1a1aa;
+      --gold:#f59e0b; --gold-dk:#d97706; --red:#ef4444; --green:#22c55e; --blue:#3b82f6;
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg); color:var(--text); height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+
+    header { flex-shrink:0; padding:10px 20px; border-bottom:1px solid var(--border);
+      background:var(--surface); display:flex; align-items:center; gap:10px; }
+    .logo { display:flex; align-items:center; gap:8px; }
+    .logo svg { color:var(--gold); }
+    .logo h1 { font-size:1rem; font-weight:600; }
+    .badge { margin-left:auto; font-size:0.65rem; color:var(--sub);
+      border:1px solid var(--muted); border-radius:99px; padding:2px 9px; }
+
+    main { flex:1; min-height:0; display:flex; }
+
+    aside { width:300px; flex-shrink:0; border-right:1px solid var(--border);
+      background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
+    .sec { border-bottom:1px solid var(--border); }
+    .sec-hdr { display:flex; align-items:center; justify-content:space-between;
+      padding:8px 14px; user-select:none; background:rgba(245,158,11,.04); }
+    .stitle { font-size:0.63rem; font-weight:700; color:var(--gold-dk);
+      text-transform:uppercase; letter-spacing:0.12em; }
+    .sec-body { padding:8px 14px 10px; }
+    .scroll { flex:1; overflow-y:auto; }
+
+    select, input[type=number], input[type=text] {
+      background:var(--bg); border:1px solid var(--muted); border-radius:6px;
+      color:var(--text); font-size:0.82rem; padding:5px 8px; outline:none; }
+    select:focus, input:focus { border-color:var(--gold); }
+
+    .parts-list { display:flex; flex-direction:column; gap:4px; max-height:240px; overflow-y:auto; }
+    .part-row { display:flex; align-items:center; gap:6px;
+      padding:5px 8px; border:1px solid var(--border); border-radius:6px;
+      background:#fff; cursor:pointer; font-size:0.8rem; }
+    .part-row.selected { border-color:var(--gold); background:rgba(245,158,11,.07); }
+    .part-row .pname { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .part-row .plabel { font-size:0.62rem; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; }
+    .icon-btn { border:none; background:transparent; padding:2px 4px;
+      color:var(--sub); cursor:pointer; font-size:0.8rem; border-radius:4px; }
+    .icon-btn:hover { background:var(--bg); color:var(--text); }
+
+    .field { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; gap:6px; }
+    .field label { font-size:0.72rem; color:var(--sub); flex:1; }
+    .field input[type=number], .field select { width:90px; text-align:right; font-size:0.78rem; }
+    .unit { font-size:0.68rem; color:var(--muted); width:20px; }
+
+    .btn { display:block; width:100%; padding:7px; border-radius:7px;
+      font-size:0.78rem; font-weight:600; border:none; cursor:pointer; margin-bottom:5px; }
+    .btn-gold { background:var(--gold-dk); color:#fff; }
+    .btn-gold:hover { background:var(--gold); color:#1c0f00; }
+    .btn-ghost { background:var(--muted); color:var(--sub); }
+    .btn-ghost:hover { background:#bbb; color:var(--text); }
+    .btn-blue { background:var(--blue); color:#fff; }
+    .btn-blue:hover { background:#2563eb; }
+    .btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+    .btn-row { display:flex; gap:4px; margin-bottom:6px; }
+    .btn-row .btn { flex:1; margin-bottom:0; padding:6px; font-size:0.7rem; }
+
+    .toggle-btn { font-size:0.7rem; padding:3px 10px; border-radius:5px;
+      border:1px solid var(--muted); background:var(--surface); color:var(--sub);
+      cursor:pointer; white-space:nowrap; }
+    .toggle-btn.active { border-color:var(--gold); color:var(--gold-dk); background:rgba(245,158,11,.08); }
+
+    .preview-panel { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; position:relative; }
+    .toolbar { flex-shrink:0; padding:6px 14px; border-bottom:1px solid var(--border);
+      background:var(--surface); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .toolbar-sep { width:1px; height:16px; background:var(--border); }
+    .thint { margin-left:auto; font-size:0.65rem; color:var(--muted); }
+
+    #mount { flex:1; min-height:0; position:relative; }
+    #mount canvas { display:block !important; }
+    #loading { position:absolute; inset:0; display:flex; align-items:center;
+      justify-content:center; color:var(--dim); font-size:0.82rem; pointer-events:none; }
+
+    .pick-hint { position:absolute; top:12px; left:50%; transform:translateX(-50%);
+      background:rgba(59,130,246,.95); color:#fff; padding:6px 14px; border-radius:20px;
+      font-size:0.78rem; box-shadow:0 4px 14px rgba(0,0,0,0.15); display:none; }
+    .pick-hint.on { display:block; }
+
+    .dims-card { background:var(--bg); border:1px solid var(--border);
+      border-radius:7px; padding:7px 10px; margin-bottom:5px; }
+    .dims-label { font-size:0.62rem; color:var(--dim); margin-bottom:2px; }
+    .dims-val { font-size:0.78rem; font-family:"SF Mono","Fira Code",monospace; }
+
+    .bad { color:var(--red); font-weight:600; }
+
+    .empty { font-size:0.75rem; color:var(--dim); text-align:center; padding:14px 8px; }
+    .section-hint { font-size:0.68rem; color:var(--dim); margin:-2px 0 6px; }
+
+    .add-row { display:flex; gap:4px; margin-bottom:6px; }
+    .add-row select { flex:1; }
+    .add-row button { padding:5px 10px; background:var(--gold-dk); color:#fff;
+      border:none; border-radius:6px; font-size:0.78rem; font-weight:600; cursor:pointer; }
+
+    .status-pill { position:absolute; bottom:10px; left:10px;
+      background:rgba(0,0,0,0.55); color:#fff; padding:4px 10px; border-radius:12px;
+      font-size:0.68rem; font-family:"SF Mono",monospace; pointer-events:none; opacity:0;
+      transition:opacity .25s; }
+    .status-pill.on { opacity:1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 2 L2 7 L12 12 L22 7 Z"/>
+      <path d="M2 17 L12 22 L22 17"/>
+      <path d="M2 12 L12 17 L22 12"/>
+    </svg>
+    <h1>Akruti Designer</h1>
+  </div>
+  <p style="font-size:0.68rem;color:var(--dim);">Parametric parts · boxes · lids · hinges · textures · cutouts</p>
+  <span class="badge">A1 mini · 180mm</span>
+</header>
+
+<main>
+  <aside>
+    <div class="sec">
+      <div class="sec-hdr"><span class="stitle">Parts</span></div>
+      <div class="sec-body">
+        <div class="add-row">
+          <select id="add-type"></select>
+          <button id="add-btn">+ Add</button>
+        </div>
+        <div class="parts-list" id="parts-list"></div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn btn-ghost" id="dup-btn" title="Duplicate selected">Duplicate</button>
+          <button class="btn btn-ghost" id="align-btn" title="Drop to build plate (Y min = 0)">Drop to Plate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="sec" id="inspector-sec">
+        <div class="sec-hdr"><span class="stitle">Inspector</span></div>
+        <div class="sec-body" id="inspector-body">
+          <div class="empty">Select a part to edit.</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="stitle">Transform</span></div>
+        <div class="sec-body" id="transform-body">
+          <div class="empty">No part selected.</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="stitle">Dimensions</span></div>
+        <div class="sec-body" id="dims-body">
+          <div class="empty">No part selected.</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="stitle">Scene</span></div>
+        <div class="sec-body">
+          <div class="field">
+            <label>A1 mini plate</label>
+            <button class="toggle-btn" id="toggleBuildPlate">Off</button>
+          </div>
+          <div class="field">
+            <label>Snap to grid</label>
+            <select id="snap-size">
+              <option value="0">Off</option>
+              <option value="0.5">0.5 mm</option>
+              <option value="1" selected>1 mm</option>
+              <option value="5">5 mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>View mode</label>
+            <select id="view-mode">
+              <option value="solid" selected>Solid</option>
+              <option value="wire">Wireframe</option>
+              <option value="xray">X-ray</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hdr"><span class="stitle">Export &amp; Save</span></div>
+        <div class="sec-body" id="export-body">
+          <button class="btn btn-gold" id="export-sel">Export Selected STL</button>
+          <button class="btn btn-ghost" id="export-all">Export All (merged) STL</button>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn btn-blue" id="save-file">Save .json</button>
+            <button class="btn btn-blue" id="load-file">Load .json</button>
+          </div>
+          <button class="btn btn-ghost" id="clear-all" style="margin-top:6px">Clear All</button>
+          <p class="section-hint">Auto-saves to your browser on every change.</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="preview-panel">
+    <div class="toolbar">
+      <button class="toggle-btn active" id="toggleGrid">Grid</button>
+      <button class="toggle-btn" id="toggleBuildPlate2" title="A1 mini plate">A1 Plate</button>
+      <div class="toolbar-sep"></div>
+      <button class="toggle-btn" id="pickFaceBtn">Pick Face</button>
+      <button class="toggle-btn" id="pickEdgeBtn">Pick Edge</button>
+      <div class="toolbar-sep"></div>
+      <button class="toggle-btn active" id="gizmoMove" title="Translate with mouse">Move</button>
+      <button class="toggle-btn" id="gizmoRotate" title="Rotate with mouse">Rotate</button>
+      <button class="toggle-btn active" id="snapPartsBtn" title="Snap to nearby parts when dragging">Snap Parts</button>
+      <div class="toolbar-sep"></div>
+      <span style="font-size:0.7rem;color:var(--sub)" id="count-label">0 parts</span>
+      <span class="thint">Drag gizmo · Hold Shift while rotating for finer control</span>
+    </div>
+    <div id="mount">
+      <div id="loading">Loading designer…</div>
+      <div class="pick-hint" id="pick-hint">Click a face on a part</div>
+      <div class="status-pill" id="status-pill">Ready</div>
+    </div>
+  </div>
+</main>
+
+<input type="file" id="hidden-file" accept=".json" style="display:none" />
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/",
+    "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js",
+    "three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.17/build/index.module.js",
+    "akruti/": "./lib/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { createScene } from 'akruti/scene.js';
+import { createBuildPlate } from 'akruti/buildPlate.js';
+import { downloadSTL } from 'akruti/stl.js';
+import { subtract, union } from 'akruti/csg.js';
+import { partRegistry, partTypeList } from 'akruti/parts/index.js';
+
+// ── Scene setup ────────────────────────────────────────────────
+const mount = document.getElementById('mount');
+const { scene, camera, renderer, controls, gridHelper, floorMesh } = createScene(mount, {
+  bg: 0xf9f9f9, fog: { near: 900, far: 1800 },
+  cameraPos: [200, 160, 220], cameraTarget: [0, 20, 0],
+  gridSize: 400, gridDivs: 40,
+});
+document.getElementById('loading').style.display = 'none';
+
+const buildPlate = createBuildPlate(scene, { x: 180, y: 180, z: 180, cell: 10 });
+
+// Transform gizmo — mouse drag to translate/rotate the selected part.
+const gizmo = new TransformControls(camera, renderer.domElement);
+gizmo.setMode('translate');
+gizmo.setSize(0.8);
+gizmo.setTranslationSnap(null); // live-snapping handled manually for part proximity
+scene.add(gizmo);
+// When using the gizmo, pause OrbitControls so camera doesn't orbit.
+gizmo.addEventListener('dragging-changed', (e) => {
+  controls.enabled = !e.value;
+  if (!e.value) onGizmoDragEnd();
+});
+gizmo.addEventListener('objectChange', () => onGizmoChange());
+
+// Populate Add dropdown with grouped part types.
+(function populateAddMenu() {
+  const sel = document.getElementById('add-type');
+  const groups = {};
+  partTypeList.forEach(p => (groups[p.group || 'Parts'] ||= []).push(p));
+  for (const [label, items] of Object.entries(groups)) {
+    const og = document.createElement('optgroup');
+    og.label = label;
+    for (const it of items) {
+      const opt = document.createElement('option');
+      opt.value = it.id; opt.textContent = it.label;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  }
+})();
+
+// ── State ──────────────────────────────────────────────────────
+let nextId = 1;
+const state = {
+  parts: [],
+  selectedId: null,
+  pickMode: null,
+  pickTarget: null, // { partId, mode:'face'|'edge', point:[x,y,z], normal:[x,y,z], faceIndex, edge:[[x,y,z],[x,y,z]] }
+  snap: 1,
+  snapToParts: true,
+  gizmoMode: 'translate', // 'translate' | 'rotate'
+  viewMode: 'solid',
+};
+const meshes = {};
+let pickHighlight = null;
+
+const CUTTER_TYPES = new Set(['hole','magnet','insert']);
+const UNION_TYPES  = new Set(['divider']);
+const PART_COLORS = {
+  box:'#d97706', cyl:'#d97706', sphere:'#d97706', cone:'#d97706',
+  snapLid:'#f59e0b', screwLid:'#f59e0b', hinge:'#a78bfa',
+  divider:'#fb923c', texture:'#60a5fa',
+  hole:'#ef4444', magnet:'#8b5cf6', insert:'#06b6d4',
+};
+
+// ── Persistence ───────────────────────────────────────────────
+const STORAGE_KEY = 'akruti.designer.v1';
+function snapshot() {
+  return { nextId, parts: state.parts.map(p => ({ ...p, params: { ...p.params }, transform: { ...p.transform } })) };
+}
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot())); } catch {}
+}
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!Array.isArray(s?.parts)) return false;
+    state.parts = s.parts;
+    nextId = s.nextId || (state.parts.length + 1);
+    state.selectedId = state.parts[0]?.id ?? null;
+    return true;
+  } catch { return false; }
+}
+
+// ── Part CRUD ─────────────────────────────────────────────────
+function addPart(type) {
+  const def = partRegistry[type];
+  if (!def) return;
+  const id = `p${nextId++}`;
+  const existing = state.parts.filter(p => p.type === type).length;
+  const name = existing ? `${def.label} ${existing + 1}` : def.label;
+  const part = {
+    id, type, name, params: { ...def.defaults },
+    transform: { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 },
+    parentId: null, op: 'none', visible: true,
+  };
+
+  // If a face/edge was picked, attach this new part to that target.
+  const tgt = state.pickTarget;
+  if (tgt) {
+    const parentMesh = meshes[tgt.partId];
+    if (parentMesh) {
+      const invMat = parentMesh.matrixWorld.clone().invert();
+      const pWorld = new THREE.Vector3(...tgt.point);
+      const pLocal = pWorld.clone().applyMatrix4(invMat);
+      part.parentId = tgt.partId;
+      part.transform.x = pLocal.x;
+      part.transform.y = pLocal.y;
+      part.transform.z = pLocal.z;
+      if (tgt.mode === 'face' && tgt.normal) {
+        const nWorld = new THREE.Vector3(...tgt.normal);
+        const nLocal = nWorld.clone().transformDirection(invMat).normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+        const q = new THREE.Quaternion().setFromUnitVectors(up, nLocal);
+        const e3 = new THREE.Euler().setFromQuaternion(q);
+        part.transform.rx = e3.x; part.transform.ry = e3.y; part.transform.rz = e3.z;
+      }
+      // Sensible default op for attached solids.
+      if (!CUTTER_TYPES.has(type) && !UNION_TYPES.has(type) && type !== 'texture') {
+        part.op = 'fill';
+      }
+    }
+    clearPickTarget();
+  }
+
+  state.parts.push(part);
+  state.selectedId = id;
+  updateAll();
+}
+
+function removePart(id) {
+  state.parts = state.parts.filter(p => p.id !== id);
+  disposeMesh(id);
+  // Orphan any children
+  for (const p of state.parts) if (p.parentId === id) p.parentId = null;
+  if (state.selectedId === id) state.selectedId = state.parts[0]?.id ?? null;
+  updateAll();
+}
+
+function duplicatePart(id) {
+  const src = state.parts.find(p => p.id === id);
+  if (!src) return;
+  const nid = `p${nextId++}`;
+  const copy = {
+    ...src, id: nid,
+    params: { ...src.params },
+    transform: { ...src.transform, x: src.transform.x + 10, z: src.transform.z + 10 },
+    name: src.name + ' copy',
+  };
+  state.parts.push(copy);
+  state.selectedId = nid;
+  updateAll();
+}
+
+function selectedPart() {
+  return state.parts.find(p => p.id === state.selectedId) || null;
+}
+
+function disposeMesh(id) {
+  const m = meshes[id]; if (!m) return;
+  scene.remove(m);
+  m.geometry.dispose();
+  m.material.dispose();
+  delete meshes[id];
+}
+
+// ── Geometry update ───────────────────────────────────────────
+function buildRawGeo(part) {
+  const def = partRegistry[part.type];
+  if (!def) return new THREE.BufferGeometry();
+  const out = def.build(part);
+  return out.geometry;
+}
+
+function transformGeo(geo, t) {
+  const m = new THREE.Matrix4().compose(
+    new THREE.Vector3(t.x, t.y, t.z),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(t.rx, t.ry, t.rz)),
+    new THREE.Vector3(1, 1, 1),
+  );
+  return geo.clone().applyMatrix4(m);
+}
+
+function updateMeshes() {
+  const keep = new Set(state.parts.map(p => p.id));
+  for (const id of Object.keys(meshes)) if (!keep.has(id)) disposeMesh(id);
+
+  // Precompute parent modifications.
+  const cutters  = {};  // parentId → [{ geo }]
+  const unions   = {};  // parentId → [{ geo }]
+  const textures = {};  // parentId → [{ geo, mode }]
+  const screwMates = {};// parentId → [{ cutterGeo, transform }]
+
+  for (const part of state.parts) {
+    if (!part.parentId) continue;
+    const isCut = CUTTER_TYPES.has(part.type) || part.op === 'cut';
+    const isFill = UNION_TYPES.has(part.type) || part.op === 'fill';
+    if (isCut) {
+      const geo = transformGeo(buildRawGeo(part), part.transform);
+      (cutters[part.parentId] ||= []).push({ geo });
+    } else if (isFill) {
+      const geo = transformGeo(buildRawGeo(part), part.transform);
+      (unions[part.parentId] ||= []).push({ geo });
+    } else if (part.type === 'texture' && part.params?.anchor) {
+      const geo = transformGeo(buildRawGeo(part), part.transform);
+      (textures[part.parentId] ||= []).push({ geo, mode: part.params.mode || 'emboss' });
+    } else if (part.type === 'screwLid') {
+      const cutGeo = partRegistry.screwLid.buildMateCutter(part.params);
+      (screwMates[part.parentId] ||= []).push({ cutterGeo: cutGeo, transform: part.transform });
+    }
+  }
+
+  for (const part of state.parts) {
+    let geo = buildRawGeo(part);
+
+    // If this part is a parent to cutters/unions/etc, bake them in.
+    const us = unions[part.id];
+    if (us?.length) {
+      for (const { geo: ug } of us) {
+        try { geo = union(geo, ug); } catch (e) { console.warn('union failed', e); }
+      }
+    }
+    const cs = cutters[part.id];
+    if (cs?.length) {
+      for (const { geo: cg } of cs) {
+        try { geo = subtract(geo, cg); } catch (e) { console.warn('subtract failed', e); }
+      }
+    }
+    const ts = textures[part.id];
+    if (ts?.length) {
+      for (const { geo: tg, mode } of ts) {
+        try { geo = mode === 'deboss' ? subtract(geo, tg) : union(geo, tg); }
+        catch (e) { console.warn('texture csg failed', e); }
+      }
+    }
+    const sms = screwMates[part.id];
+    if (sms?.length) {
+      for (const { cutterGeo, transform } of sms) {
+        const cg = transformGeo(cutterGeo, transform);
+        try { geo = subtract(geo, cg); } catch (e) { console.warn('screwMate subtract failed', e); }
+      }
+    }
+
+    let m = meshes[part.id];
+    const mat = materialFor(part);
+    if (!m) {
+      m = new THREE.Mesh(geo, mat);
+      m.castShadow = true; m.receiveShadow = true;
+      m.userData.partId = part.id;
+      scene.add(m);
+      meshes[part.id] = m;
+    } else {
+      m.geometry.dispose();
+      m.geometry = geo;
+      m.material.dispose();
+      m.material = mat;
+    }
+    const t = part.transform;
+    m.position.set(t.x, t.y, t.z);
+    m.rotation.set(t.rx, t.ry, t.rz);
+    const consumed = isConsumedChild(part);
+    m.visible = part.visible && (!consumed || part.id === state.selectedId);
+  }
+}
+
+// A child part whose geo has been merged into its parent shouldn't render on its own.
+function isConsumedChild(part) {
+  if (!part.parentId) return false;
+  return CUTTER_TYPES.has(part.type)
+      || UNION_TYPES.has(part.type)
+      || part.op === 'cut' || part.op === 'fill'
+      || (part.type === 'texture' && part.params?.anchor);
+}
+
+function materialFor(part) {
+  const color = PART_COLORS[part.type] || '#d97706';
+  const isSelected = part.id === state.selectedId;
+  const mode = state.viewMode;
+  // If a consumed child is being edited, render it as a ghost so the user
+  // can see where it sits inside its parent.
+  const ghost = isSelected && isConsumedChild(part);
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color),
+    metalness: 0.05, roughness: 0.6, side: THREE.DoubleSide,
+    wireframe: mode === 'wire' || ghost,
+    transparent: mode === 'xray' || ghost,
+    opacity: ghost ? 0.4 : (mode === 'xray' ? 0.35 : 1),
+    emissive: new THREE.Color(isSelected ? 0x3b2500 : 0x000000),
+    emissiveIntensity: isSelected ? 0.4 : 0,
+    depthWrite: !ghost,
+  });
+}
+
+// ── UI: parts list ────────────────────────────────────────────
+function rebuildPartsList() {
+  const host = document.getElementById('parts-list');
+  host.innerHTML = '';
+  document.getElementById('count-label').textContent = `${state.parts.length} part${state.parts.length === 1 ? '' : 's'}`;
+  if (!state.parts.length) {
+    host.innerHTML = '<div class="empty">No parts yet — use + Add above.</div>';
+    return;
+  }
+  for (const part of state.parts) {
+    const row = document.createElement('div');
+    row.className = 'part-row' + (part.id === state.selectedId ? ' selected' : '');
+    row.innerHTML = `
+      <button class="icon-btn" title="Toggle visibility" data-act="vis">${part.visible ? '●' : '○'}</button>
+      <div class="pname">${esc(part.name)}<div class="plabel">${part.type}${part.parentId ? ` → ${esc(findName(part.parentId))}` : ''}</div></div>
+      <button class="icon-btn" title="Duplicate" data-act="dup">⎘</button>
+      <button class="icon-btn" title="Delete" data-act="del">✕</button>`;
+    row.addEventListener('click', e => {
+      const act = e.target.closest('[data-act]')?.dataset.act;
+      if (act === 'del') { removePart(part.id); return; }
+      if (act === 'vis') { part.visible = !part.visible; updateAll(); return; }
+      if (act === 'dup') { duplicatePart(part.id); return; }
+      state.selectedId = part.id; updateAll();
+    });
+    host.appendChild(row);
+  }
+}
+
+function findName(id) { return state.parts.find(p => p.id === id)?.name || '?'; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+// ── UI: inspector ─────────────────────────────────────────────
+function rebuildInspector() {
+  const host = document.getElementById('inspector-body');
+  const part = selectedPart();
+  host.innerHTML = '';
+  if (!part) { host.innerHTML = '<div class="empty">Select a part to edit.</div>'; return; }
+  const def = partRegistry[part.type];
+
+  // Name
+  const nameField = document.createElement('div');
+  nameField.className = 'field';
+  nameField.innerHTML = `<label>Name</label><input type="text" value="${esc(part.name)}" style="width:140px;text-align:left;">`;
+  nameField.querySelector('input').addEventListener('input', e => { part.name = e.target.value; rebuildPartsList(); saveLocal(); });
+  host.appendChild(nameField);
+
+  // Parent picker — now available for ALL solids too so any shape can be child.
+  const parentable = state.parts.filter(p => p.id !== part.id && !CUTTER_TYPES.has(p.type) && !UNION_TYPES.has(p.type));
+  if (parentable.length) {
+    const row = document.createElement('div');
+    row.className = 'field';
+    const options = ['<option value="">— none —</option>',
+      ...parentable.map(p => `<option value="${p.id}" ${p.id === part.parentId ? 'selected' : ''}>${esc(p.name)}</option>`)].join('');
+    row.innerHTML = `<label>Parent</label><select style="width:140px">${options}</select>`;
+    row.querySelector('select').addEventListener('change', e => {
+      part.parentId = e.target.value || null;
+      updateAll();
+    });
+    host.appendChild(row);
+  }
+
+  // Operation dropdown — show for any part with a parent that isn't already a
+  // hard-wired cutter/union/texture/screwLid (those have their own behavior).
+  const hardTypes = new Set(['hole','magnet','insert','divider','texture','screwLid']);
+  if (part.parentId && !hardTypes.has(part.type)) {
+    const row = document.createElement('div');
+    row.className = 'field';
+    const opVal = part.op || 'none';
+    row.innerHTML = `<label title="How this part combines with its parent">Operation</label>
+      <select style="width:140px">
+        <option value="none"${opVal==='none'?' selected':''}>Independent</option>
+        <option value="fill"${opVal==='fill'?' selected':''}>Fill (union)</option>
+        <option value="cut"${opVal==='cut'?' selected':''}>Cut (subtract)</option>
+      </select>`;
+    row.querySelector('select').addEventListener('change', e => {
+      part.op = e.target.value;
+      updateAll();
+    });
+    host.appendChild(row);
+  }
+
+  // Params
+  for (const sch of def.paramsSchema) {
+    const row = document.createElement('div');
+    row.className = 'field';
+    const val = part.params[sch.key] ?? sch.default;
+    if (sch.options) {
+      row.innerHTML = `<label>${sch.label}</label>
+        <select>${sch.options.map(o => `<option value="${o}" ${String(o) === String(val) ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+      row.querySelector('select').addEventListener('change', e => {
+        part.params[sch.key] = e.target.value; updateAll();
+      });
+    } else {
+      row.innerHTML = `<label>${sch.label}</label>
+        <input type="number" value="${val}" ${sch.min !== undefined ? `min="${sch.min}"` : ''} step="${sch.step || 1}">
+        <span class="unit">${sch.unit || ''}</span>`;
+      row.querySelector('input').addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) { part.params[sch.key] = v; updateAll(); }
+      });
+    }
+    host.appendChild(row);
+  }
+}
+
+// ── UI: transform ─────────────────────────────────────────────
+function snapVal(v) { return state.snap > 0 ? Math.round(v / state.snap) * state.snap : v; }
+
+function rebuildTransform() {
+  const host = document.getElementById('transform-body');
+  const part = selectedPart();
+  host.innerHTML = '';
+  if (!part) { host.innerHTML = '<div class="empty">No part selected.</div>'; return; }
+  const t = part.transform;
+  const fields = [
+    ['x','X','mm',false], ['y','Y','mm',false], ['z','Z','mm',false],
+    ['rx','Rot X','°',true], ['ry','Rot Y','°',true], ['rz','Rot Z','°',true],
+  ];
+  for (const [key, label, unit, isRot] of fields) {
+    const row = document.createElement('div');
+    row.className = 'field';
+    const display = isRot ? (t[key] * 180 / Math.PI).toFixed(1) : t[key].toFixed(2);
+    row.innerHTML = `<label>${label}</label>
+      <input type="number" value="${display}" step="${isRot ? 5 : (state.snap || 1)}">
+      <span class="unit">${unit}</span>`;
+    row.querySelector('input').addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      if (isNaN(v)) return;
+      t[key] = isRot ? v * Math.PI / 180 : snapVal(v);
+      updateAll();
+    });
+    host.appendChild(row);
+  }
+}
+
+// ── UI: dimensions readout ────────────────────────────────────
+function rebuildDims() {
+  const host = document.getElementById('dims-body');
+  const part = selectedPart();
+  host.innerHTML = '';
+  if (!part) { host.innerHTML = '<div class="empty">No part selected.</div>'; return; }
+  const mesh = meshes[part.id];
+  if (!mesh) { host.innerHTML = '<div class="empty">—</div>'; return; }
+  mesh.geometry.computeBoundingBox();
+  const bb = mesh.geometry.boundingBox;
+  const size = new THREE.Vector3(); bb.getSize(size);
+  // Transform to world for absolute extents
+  const min = bb.min.clone().applyMatrix4(mesh.matrixWorld);
+  const max = bb.max.clone().applyMatrix4(mesh.matrixWorld);
+  const worldSize = max.clone().sub(min);
+
+  const overflow = worldSize.x > 180 || worldSize.y > 180 || worldSize.z > 180;
+  host.innerHTML = `
+    <div class="dims-card">
+      <div class="dims-label">Local size (mm)</div>
+      <div class="dims-val">${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)}</div>
+    </div>
+    <div class="dims-card">
+      <div class="dims-label">World bbox (mm)</div>
+      <div class="dims-val">${worldSize.x.toFixed(1)} × ${worldSize.y.toFixed(1)} × ${worldSize.z.toFixed(1)} ${overflow ? '<span class="bad">· exceeds 180</span>' : ''}</div>
+    </div>
+    <div class="dims-card">
+      <div class="dims-label">Position (min)</div>
+      <div class="dims-val">${min.x.toFixed(1)}, ${min.y.toFixed(1)}, ${min.z.toFixed(1)}</div>
+    </div>`;
+}
+
+// ── Toolbar wiring ────────────────────────────────────────────
+document.getElementById('add-btn').addEventListener('click', () => {
+  addPart(document.getElementById('add-type').value);
+});
+document.getElementById('toggleGrid').addEventListener('click', function () {
+  const vis = !gridHelper.visible;
+  gridHelper.visible = vis; if (floorMesh) floorMesh.visible = vis;
+  this.classList.toggle('active', vis);
+});
+function togglePlate() {
+  const v = !buildPlate.isVisible();
+  buildPlate.setVisible(v);
+  const b1 = document.getElementById('toggleBuildPlate');
+  const b2 = document.getElementById('toggleBuildPlate2');
+  b1.classList.toggle('active', v); b1.textContent = v ? 'On' : 'Off';
+  b2.classList.toggle('active', v);
+}
+document.getElementById('toggleBuildPlate').addEventListener('click', togglePlate);
+document.getElementById('toggleBuildPlate2').addEventListener('click', togglePlate);
+
+document.getElementById('snap-size').addEventListener('change', e => {
+  state.snap = parseFloat(e.target.value) || 0;
+});
+document.getElementById('view-mode').addEventListener('change', e => {
+  state.viewMode = e.target.value;
+  updateAll();
+});
+
+document.getElementById('dup-btn').addEventListener('click', () => {
+  if (state.selectedId) duplicatePart(state.selectedId);
+});
+document.getElementById('align-btn').addEventListener('click', () => {
+  const part = selectedPart();
+  if (!part) return;
+  const mesh = meshes[part.id];
+  if (!mesh) return;
+  mesh.geometry.computeBoundingBox();
+  const bb = mesh.geometry.boundingBox;
+  const minY = bb.min.y + part.transform.y;
+  part.transform.y -= minY;
+  updateAll();
+});
+
+document.getElementById('clear-all').addEventListener('click', () => {
+  if (!state.parts.length) return;
+  state.parts = [];
+  state.selectedId = null;
+  for (const id of Object.keys(meshes)) disposeMesh(id);
+  updateAll();
+});
+
+document.getElementById('save-file').addEventListener('click', () => {
+  const data = JSON.stringify(snapshot(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `akruti-design-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('load-file').addEventListener('click', () => {
+  document.getElementById('hidden-file').click();
+});
+document.getElementById('hidden-file').addEventListener('change', e => {
+  const file = e.target.files?.[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const s = JSON.parse(r.result);
+      if (!Array.isArray(s?.parts)) throw new Error('Invalid file');
+      for (const id of Object.keys(meshes)) disposeMesh(id);
+      state.parts = s.parts;
+      nextId = s.nextId || state.parts.length + 1;
+      state.selectedId = state.parts[0]?.id ?? null;
+      updateAll();
+      flash('Loaded ' + file.name);
+    } catch (err) {
+      alert('Load failed: ' + err.message);
+    }
+  };
+  r.readAsText(file);
+  e.target.value = '';
+});
+
+// ── Pick modes (face / edge) ──────────────────────────────────
+const pickHint = document.getElementById('pick-hint');
+const pickFaceBtn = document.getElementById('pickFaceBtn');
+const pickEdgeBtn = document.getElementById('pickEdgeBtn');
+
+function setPickMode(mode) {
+  state.pickMode = mode;
+  pickFaceBtn.classList.toggle('active', mode === 'face');
+  pickEdgeBtn.classList.toggle('active', mode === 'edge');
+  if (mode) {
+    pickHint.textContent = mode === 'face' ? 'Click a face on a part' : 'Click near an edge';
+    pickHint.classList.add('on');
+  } else {
+    pickHint.classList.remove('on');
+  }
+}
+pickFaceBtn.addEventListener('click', () => setPickMode(state.pickMode === 'face' ? null : 'face'));
+pickEdgeBtn.addEventListener('click', () => setPickMode(state.pickMode === 'edge' ? null : 'edge'));
+
+function clearPickTarget() {
+  state.pickTarget = null;
+  if (pickHighlight) {
+    scene.remove(pickHighlight);
+    if (pickHighlight.geometry) pickHighlight.geometry.dispose();
+    if (pickHighlight.material) pickHighlight.material.dispose();
+    pickHighlight = null;
+  }
+  pickHint.classList.remove('on');
+}
+
+function triVertsWorld(mesh, faceIndex) {
+  const geo = mesh.geometry;
+  const pos = geo.attributes.position;
+  const idx = geo.index;
+  const i0 = faceIndex * 3;
+  const a = idx ? idx.getX(i0)     : i0;
+  const b = idx ? idx.getX(i0 + 1) : i0 + 1;
+  const c = idx ? idx.getX(i0 + 2) : i0 + 2;
+  return [a, b, c].map(ix => new THREE.Vector3().fromBufferAttribute(pos, ix).applyMatrix4(mesh.matrixWorld));
+}
+
+function showFaceHighlight(mesh, faceIndex, normalWorld) {
+  if (pickHighlight) clearPickTarget._disposeOld?.();
+  const [v1, v2, v3] = triVertsWorld(mesh, faceIndex);
+  // Lift slightly along normal to avoid z-fighting.
+  const off = normalWorld.clone().multiplyScalar(0.3);
+  const pts = [v1.clone().add(off), v2.clone().add(off), v3.clone().add(off)];
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  g.setIndex([0, 1, 2]);
+  g.computeVertexNormals();
+  const m = new THREE.MeshBasicMaterial({
+    color: 0xfbbf24, side: THREE.DoubleSide,
+    transparent: true, opacity: 0.55, depthTest: false,
+  });
+  const mesh2 = new THREE.Mesh(g, m);
+  mesh2.renderOrder = 999;
+  if (pickHighlight) {
+    scene.remove(pickHighlight);
+    pickHighlight.geometry?.dispose(); pickHighlight.material?.dispose();
+  }
+  pickHighlight = mesh2;
+  scene.add(pickHighlight);
+}
+
+function closestEdgeOfTri(verts, point) {
+  const edges = [[verts[0], verts[1]], [verts[1], verts[2]], [verts[2], verts[0]]];
+  let best = edges[0], bestD = Infinity;
+  const tmp = new THREE.Line3();
+  const cp = new THREE.Vector3();
+  for (const e of edges) {
+    tmp.start = e[0]; tmp.end = e[1];
+    tmp.closestPointToPoint(point, true, cp);
+    const d = cp.distanceToSquared(point);
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  return best;
+}
+
+function showEdgeHighlight(mesh, faceIndex, hitPoint) {
+  const verts = triVertsWorld(mesh, faceIndex);
+  const edge = closestEdgeOfTri(verts, hitPoint);
+  const g = new THREE.BufferGeometry().setFromPoints(edge);
+  const m = new THREE.LineBasicMaterial({ color: 0xfbbf24, depthTest: false, linewidth: 3 });
+  const line = new THREE.Line(g, m);
+  line.renderOrder = 999;
+  if (pickHighlight) {
+    scene.remove(pickHighlight);
+    pickHighlight.geometry?.dispose(); pickHighlight.material?.dispose();
+  }
+  pickHighlight = line;
+  scene.add(pickHighlight);
+  return edge.map(v => [v.x, v.y, v.z]);
+}
+
+// Esc cancels any pick state.
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (state.pickMode) setPickMode(null);
+    if (state.pickTarget) { clearPickTarget(); flash('Pick cleared'); }
+  }
+});
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+renderer.domElement.addEventListener('click', (e) => {
+  // Ignore clicks that are just the end of a gizmo drag.
+  if (gizmo.dragging) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(Object.values(meshes), false);
+  if (!hits.length) {
+    if (!state.pickMode) { state.selectedId = null; updateAll(); }
+    return;
+  }
+  const hit = hits[0];
+  const partId = hit.object.userData.partId;
+
+  if (state.pickMode === 'face') {
+    const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+    state.pickTarget = {
+      partId, mode: 'face',
+      point: [hit.point.x, hit.point.y, hit.point.z],
+      normal: [n.x, n.y, n.z],
+      faceIndex: hit.faceIndex,
+    };
+    showFaceHighlight(hit.object, hit.faceIndex, n);
+    setPickMode(null);
+    pickHint.textContent = 'Face picked — next part attaches here (Esc to clear)';
+    pickHint.classList.add('on');
+    flash('Face picked');
+    return;
+  }
+  if (state.pickMode === 'edge') {
+    const edgePts = showEdgeHighlight(hit.object, hit.faceIndex, hit.point);
+    state.pickTarget = {
+      partId, mode: 'edge',
+      point: [hit.point.x, hit.point.y, hit.point.z],
+      edge: edgePts,
+      normal: null,
+      faceIndex: hit.faceIndex,
+    };
+    setPickMode(null);
+    pickHint.textContent = 'Edge picked — next part attaches here (Esc to clear)';
+    pickHint.classList.add('on');
+    flash('Edge picked');
+    return;
+  }
+  // Plain click (no pick mode) — select the part.
+  state.selectedId = partId;
+  updateAll();
+});
+
+// ── Export ────────────────────────────────────────────────────
+function geoToTris(geo) {
+  const pos = geo.attributes.position;
+  const idx = geo.index;
+  const tris = [];
+  const v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+  const cnt = idx ? idx.count : pos.count;
+  for (let i = 0; i < cnt; i += 3) {
+    for (let k = 0; k < 3; k++) {
+      const ix = idx ? idx.getX(i + k) : (i + k);
+      v[k].fromBufferAttribute(pos, ix);
+    }
+    const a = v[1].clone().sub(v[0]);
+    const b = v[2].clone().sub(v[0]);
+    const n = a.cross(b).normalize();
+    const toZup = (p) => [p.x, p.z, p.y];
+    tris.push({
+      n: [n.x, n.z, n.y],
+      v1: toZup(v[0]), v2: toZup(v[1]), v3: toZup(v[2]),
+    });
+  }
+  return tris;
+}
+
+document.getElementById('export-sel').addEventListener('click', () => {
+  const part = selectedPart();
+  if (!part) return;
+  const mesh = meshes[part.id];
+  if (!mesh) return;
+  const geo = mesh.geometry.clone();
+  geo.applyMatrix4(mesh.matrixWorld);
+  const tris = geoToTris(geo);
+  downloadSTL(tris, `${safeName(part.name)}.stl`, { bedSize: 180 });
+});
+document.getElementById('export-all').addEventListener('click', () => {
+  const all = [];
+  for (const part of state.parts) {
+    const mesh = meshes[part.id];
+    if (!mesh || !part.visible || isConsumedChild(part)) continue;
+    const geo = mesh.geometry.clone();
+    geo.applyMatrix4(mesh.matrixWorld);
+    all.push(...geoToTris(geo));
+  }
+  if (!all.length) { flash('Nothing to export'); return; }
+  downloadSTL(all, 'akruti-assembly.stl', { bedSize: 180 });
+});
+function safeName(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'part'; }
+
+// ── Status flash ──────────────────────────────────────────────
+let flashTimer = null;
+function flash(msg) {
+  const el = document.getElementById('status-pill');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => el.classList.remove('on'), 1600);
+}
+
+// ── Gizmo drag + snap ─────────────────────────────────────────
+function attachGizmoToSelection() {
+  const part = selectedPart();
+  const m = part ? meshes[part.id] : null;
+  if (m) gizmo.attach(m); else gizmo.detach();
+}
+
+function onGizmoChange() {
+  if (!gizmo.dragging) return;
+  if (state.snapToParts && gizmo.getMode() === 'translate') {
+    snapMeshToParts(gizmo.object);
+  }
+}
+
+function onGizmoDragEnd() {
+  const part = selectedPart(); if (!part) return;
+  const m = gizmo.object; if (!m) return;
+  if (state.snapToParts && gizmo.getMode() === 'translate') {
+    snapMeshToParts(m);
+  }
+  // Apply grid snap
+  if (state.snap > 0) {
+    m.position.x = Math.round(m.position.x / state.snap) * state.snap;
+    m.position.y = Math.round(m.position.y / state.snap) * state.snap;
+    m.position.z = Math.round(m.position.z / state.snap) * state.snap;
+  }
+  part.transform.x = m.position.x;
+  part.transform.y = m.position.y;
+  part.transform.z = m.position.z;
+  part.transform.rx = m.rotation.x;
+  part.transform.ry = m.rotation.y;
+  part.transform.rz = m.rotation.z;
+  updateAll();
+}
+
+// Snap the dragged mesh's bbox corners / center to the closest equivalent
+// point on any other visible part. Returns true if a snap was applied.
+function snapMeshToParts(mesh, threshold = 4) {
+  const selfId = mesh.userData.partId;
+  mesh.updateMatrixWorld(true);
+  mesh.geometry.computeBoundingBox();
+  const sb = mesh.geometry.boundingBox;
+  const selfPts = [
+    new THREE.Vector3(sb.min.x, sb.min.y, sb.min.z),
+    new THREE.Vector3(sb.max.x, sb.max.y, sb.max.z),
+    new THREE.Vector3(sb.min.x, sb.min.y, sb.max.z),
+    new THREE.Vector3(sb.max.x, sb.min.y, sb.min.z),
+    new THREE.Vector3(sb.min.x, sb.max.y, sb.min.z),
+    new THREE.Vector3(sb.max.x, sb.max.y, sb.max.z),
+    sb.getCenter(new THREE.Vector3()),
+  ].map(v => v.applyMatrix4(mesh.matrixWorld));
+
+  const targetPts = [];
+  for (const [id, m] of Object.entries(meshes)) {
+    if (id === selfId) continue;
+    if (!m.visible) continue;
+    m.updateMatrixWorld(true);
+    m.geometry.computeBoundingBox();
+    const b = m.geometry.boundingBox;
+    const c = [
+      [b.min.x,b.min.y,b.min.z],[b.max.x,b.min.y,b.min.z],
+      [b.min.x,b.max.y,b.min.z],[b.max.x,b.max.y,b.min.z],
+      [b.min.x,b.min.y,b.max.z],[b.max.x,b.min.y,b.max.z],
+      [b.min.x,b.max.y,b.max.z],[b.max.x,b.max.y,b.max.z],
+    ];
+    for (const p of c) targetPts.push(new THREE.Vector3(...p).applyMatrix4(m.matrixWorld));
+    targetPts.push(b.getCenter(new THREE.Vector3()).applyMatrix4(m.matrixWorld));
+  }
+  if (!targetPts.length) return false;
+
+  let best = null, bestD = threshold;
+  for (const s of selfPts) {
+    for (const t of targetPts) {
+      const d = s.distanceTo(t);
+      if (d < bestD) { bestD = d; best = { from: s.clone(), to: t.clone() }; }
+    }
+  }
+  if (!best) return false;
+  const delta = best.to.clone().sub(best.from);
+  mesh.position.add(delta);
+  return true;
+}
+
+// Toolbar wiring for gizmo mode + snap toggle.
+const gizmoMoveBtn = document.getElementById('gizmoMove');
+const gizmoRotateBtn = document.getElementById('gizmoRotate');
+const snapPartsBtn = document.getElementById('snapPartsBtn');
+function setGizmoMode(mode) {
+  state.gizmoMode = mode;
+  gizmo.setMode(mode);
+  gizmoMoveBtn.classList.toggle('active', mode === 'translate');
+  gizmoRotateBtn.classList.toggle('active', mode === 'rotate');
+}
+gizmoMoveBtn.addEventListener('click', () => setGizmoMode('translate'));
+gizmoRotateBtn.addEventListener('click', () => setGizmoMode('rotate'));
+snapPartsBtn.addEventListener('click', () => {
+  state.snapToParts = !state.snapToParts;
+  snapPartsBtn.classList.toggle('active', state.snapToParts);
+  flash(state.snapToParts ? 'Part snap ON' : 'Part snap OFF');
+});
+
+// Keyboard shortcuts: G/R toggle gizmo mode, X delete selected.
+window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+  if (e.key === 'g' || e.key === 'G') setGizmoMode('translate');
+  else if (e.key === 'r' || e.key === 'R') setGizmoMode('rotate');
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedId) {
+    e.preventDefault(); removePart(state.selectedId);
+  }
+});
+
+// ── Main update ───────────────────────────────────────────────
+let updatePending = false;
+function updateAll() {
+  if (updatePending) return;
+  updatePending = true;
+  // Use setTimeout(0) instead of rAF so updates still fire when the tab is
+  // backgrounded (rAF is heavily throttled while hidden).
+  setTimeout(() => {
+    updatePending = false;
+    try {
+      updateMeshes();
+      attachGizmoToSelection();
+      rebuildPartsList();
+      rebuildInspector();
+      rebuildTransform();
+      rebuildDims();
+      saveLocal();
+    } catch (err) {
+      console.error('updateAll failed', err);
+      flash('⚠ Update failed — see console');
+    }
+  }, 0);
+}
+
+// Init: restore from localStorage or seed one box.
+if (!loadLocal() || !state.parts.length) {
+  state.parts = [];
+  nextId = 1;
+  addPart('box');
+} else {
+  updateAll();
+}
+</script>
+
+</body>
+</html>

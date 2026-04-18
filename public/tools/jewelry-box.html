@@ -400,6 +400,7 @@
     <button class="toggle-btn active" id="toggleView">Exploded</button>
     <div class="toolbar-sep"></div>
     <button class="toggle-btn active" id="toggleGrid">Grid</button>
+    <button class="toggle-btn" id="toggleBuildPlate" title="Toggle A1 mini 180×180×180 mm build volume">A1 Plate</button>
     <button class="toggle-btn active" id="toggleElemPanel">Layers</button>
     <div class="legend" id="legend"></div>
     <span class="thint">Drag · Scroll zoom · Right-drag pan</span>
@@ -425,193 +426,25 @@
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/"
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/",
+    "akruti/": "./lib/"
 }}
 </script>
 
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-// ═══════════════════════════════════════════════════════════════
-// GEOMETRY HELPERS
-// ═══════════════════════════════════════════════════════════════
-function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
-function normV(v){const l=Math.sqrt(v[0]**2+v[1]**2+v[2]**2);return l?[v[0]/l,v[1]/l,v[2]/l]:[0,0,1];}
-function addTri(T,v1,v2,v3){
-  const a=[v2[0]-v1[0],v2[1]-v1[1],v2[2]-v1[2]],b=[v3[0]-v1[0],v3[1]-v1[1],v3[2]-v1[2]];
-  T.push({n:normV(cross(a,b)),v1,v2,v3});
-}
-function addQ(T,v1,v2,v3,v4){addTri(T,v1,v2,v3);addTri(T,v1,v3,v4);}
-
-function addSolidBox(T,x0,y0,z0,x1,y1,z1){
-  addQ(T,[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],[x1,y0,z0]);
-  addQ(T,[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]);
-  addQ(T,[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]);
-  addQ(T,[x1,y1,z0],[x0,y1,z0],[x0,y1,z1],[x1,y1,z1]);
-  addQ(T,[x0,y1,z0],[x0,y0,z0],[x0,y0,z1],[x0,y1,z1]);
-  addQ(T,[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],[x1,y0,z1]);
-}
-
-function buildBox(W,D,H,t){
-  const T=[];
-  addQ(T,[0,0,0],[0,D,0],[W,D,0],[W,0,0]);
-  addQ(T,[0,0,0],[W,0,0],[W,0,H],[0,0,H]);
-  addQ(T,[W,D,0],[0,D,0],[0,D,H],[W,D,H]);
-  addQ(T,[0,D,0],[0,0,0],[0,0,H],[0,D,H]);
-  addQ(T,[W,0,0],[W,D,0],[W,D,H],[W,0,H]);
-  addQ(T,[t,t,t],[W-t,t,t],[W-t,D-t,t],[t,D-t,t]);
-  addQ(T,[W-t,t,t],[t,t,t],[t,t,H],[W-t,t,H]);
-  addQ(T,[t,D-t,t],[W-t,D-t,t],[W-t,D-t,H],[t,D-t,H]);
-  addQ(T,[t,t,t],[t,D-t,t],[t,D-t,H],[t,t,H]);
-  addQ(T,[W-t,D-t,t],[W-t,t,t],[W-t,t,H],[W-t,D-t,H]);
-  addQ(T,[0,0,H],[W,0,H],[W,t,H],[0,t,H]);
-  addQ(T,[0,D-t,H],[W,D-t,H],[W,D,H],[0,D,H]);
-  addQ(T,[0,t,H],[t,t,H],[t,D-t,H],[0,D-t,H]);
-  addQ(T,[W-t,t,H],[W,t,H],[W,D-t,H],[W-t,D-t,H]);
-  return T;
-}
-
-function buildRidge(W,D,H,t,c,rH,rW){
-  const T=[],ox=t+c,oy=t+c,rw=W-2*t-2*c,rd=D-2*t-2*c,z0=H,z1=H+rH;
-  if(rw<=2*rW||rd<=2*rW) return T;
-  addQ(T,[ox,oy,z0],[ox+rw,oy,z0],[ox+rw,oy,z1],[ox,oy,z1]);
-  addQ(T,[ox+rw,oy+rd,z0],[ox,oy+rd,z0],[ox,oy+rd,z1],[ox+rw,oy+rd,z1]);
-  addQ(T,[ox,oy+rd,z0],[ox,oy,z0],[ox,oy,z1],[ox,oy+rd,z1]);
-  addQ(T,[ox+rw,oy,z0],[ox+rw,oy+rd,z0],[ox+rw,oy+rd,z1],[ox+rw,oy,z1]);
-  addQ(T,[ox+rW,oy+rW,z0],[ox+rW,oy+rW,z1],[ox+rw-rW,oy+rW,z1],[ox+rw-rW,oy+rW,z0]);
-  addQ(T,[ox+rw-rW,oy+rd-rW,z0],[ox+rw-rW,oy+rd-rW,z1],[ox+rW,oy+rd-rW,z1],[ox+rW,oy+rd-rW,z0]);
-  addQ(T,[ox+rW,oy+rW,z0],[ox+rW,oy+rd-rW,z0],[ox+rW,oy+rd-rW,z1],[ox+rW,oy+rW,z1]);
-  addQ(T,[ox+rw-rW,oy+rd-rW,z0],[ox+rw-rW,oy+rW,z0],[ox+rw-rW,oy+rW,z1],[ox+rw-rW,oy+rd-rW,z1]);
-  addQ(T,[ox,oy,z1],[ox+rw,oy,z1],[ox+rw,oy+rW,z1],[ox,oy+rW,z1]);
-  addQ(T,[ox,oy+rd-rW,z1],[ox+rw,oy+rd-rW,z1],[ox+rw,oy+rd,z1],[ox,oy+rd,z1]);
-  addQ(T,[ox,oy+rW,z1],[ox+rW,oy+rW,z1],[ox+rW,oy+rd-rW,z1],[ox,oy+rd-rW,z1]);
-  addQ(T,[ox+rw-rW,oy+rW,z1],[ox+rw,oy+rW,z1],[ox+rw,oy+rd-rW,z1],[ox+rw-rW,oy+rd-rW,z1]);
-  addQ(T,[ox,oy,z0],[ox,oy+rW,z0],[ox+rw,oy+rW,z0],[ox+rw,oy,z0]);
-  addQ(T,[ox,oy+rd-rW,z0],[ox,oy+rd,z0],[ox+rw,oy+rd,z0],[ox+rw,oy+rd-rW,z0]);
-  addQ(T,[ox,oy+rW,z0],[ox,oy+rd-rW,z0],[ox+rW,oy+rd-rW,z0],[ox+rW,oy+rW,z0]);
-  addQ(T,[ox+rw-rW,oy+rW,z0],[ox+rw-rW,oy+rd-rW,z0],[ox+rw,oy+rd-rW,z0],[ox+rw,oy+rW,z0]);
-  return T;
-}
-
-function buildCylinder(D,H,t,N=64){
-  const T=[],R=D/2,r=R-t;
-  for(let i=0;i<N;i++){
-    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
-    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
-    addTri(T,[0,0,0],[R*c1,R*s1,0],[R*c0,R*s0,0]);
-    addQ(T,[R*c0,R*s0,0],[R*c1,R*s1,0],[R*c1,R*s1,H],[R*c0,R*s0,H]);
-    addTri(T,[0,0,t],[r*c0,r*s0,t],[r*c1,r*s1,t]);
-    addQ(T,[r*c0,r*s0,t],[r*c0,r*s0,H],[r*c1,r*s1,H],[r*c1,r*s1,t]);
-    addQ(T,[r*c0,r*s0,H],[R*c0,R*s0,H],[R*c1,R*s1,H],[r*c1,r*s1,H]);
-  }
-  return T;
-}
-
-function buildCircleRidge(D,H,t,c,rH,rW,N=64){
-  const T=[],R=(D/2)-t-c,z0=H,z1=H+rH,ri=R-rW;
-  if(ri<=0) return T;
-  for(let i=0;i<N;i++){
-    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
-    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
-    addQ(T,[R*c0,R*s0,z0],[R*c1,R*s1,z0],[R*c1,R*s1,z1],[R*c0,R*s0,z1]);
-    addQ(T,[ri*c0,ri*s0,z0],[ri*c0,ri*s0,z1],[ri*c1,ri*s1,z1],[ri*c1,ri*s1,z0]);
-    addQ(T,[ri*c0,ri*s0,z1],[R*c0,R*s0,z1],[R*c1,R*s1,z1],[ri*c1,ri*s1,z1]);
-    addQ(T,[ri*c0,ri*s0,z0],[ri*c1,ri*s1,z0],[R*c1,R*s1,z0],[R*c0,R*s0,z0]);
-  }
-  return T;
-}
-
-function buildLedges(W,D,H,t,lH,lD,lT){
-  const T=[];
-  if(lH+lT>H-t||lD<=0||lT<=0||lD>=(W-2*t)/2||lD>=(D-2*t)/2) return T;
-  addSolidBox(T,t,     t,      lH, W-t,   t+lD,   lH+lT);
-  addSolidBox(T,t,     D-t-lD, lH, W-t,   D-t,    lH+lT);
-  addSolidBox(T,t,     t+lD,   lH, t+lD,  D-t-lD, lH+lT);
-  addSolidBox(T,W-t-lD,t+lD,   lH, W-t,   D-t-lD, lH+lT);
-  return T;
-}
-
-function buildCircleLedge(D,H,t,lH,lD,lT,N=64){
-  const T=[],R=D/2-t,r=R-lD,z0=lH,z1=lH+lT;
-  if(r<=0||z1>H-t) return T;
-  for(let i=0;i<N;i++){
-    const a0=2*Math.PI*i/N,a1=2*Math.PI*(i+1)/N;
-    const[c0,s0,c1,s1]=[Math.cos(a0),Math.sin(a0),Math.cos(a1),Math.sin(a1)];
-    addQ(T,[r*c0,r*s0,z0],[r*c0,r*s0,z1],[r*c1,r*s1,z1],[r*c1,r*s1,z0]);
-    addQ(T,[r*c0,r*s0,z1],[R*c0,R*s0,z1],[R*c1,R*s1,z1],[r*c1,r*s1,z1]);
-    addQ(T,[r*c0,r*s0,z0],[r*c1,r*s1,z0],[R*c1,R*s1,z0],[R*c0,R*s0,z0]);
-  }
-  return T;
-}
-
-function buildStackTabs(W,D,boxH,t,c,rgH,tW,tH,tD){
-  const T=[],ox=t+c,oy=t+c,rw=W-2*t-2*c,rd=D-2*t-2*c,z0=boxH+rgH,z1=z0+tH;
-  if(rw<=0||rd<=0||tH<=0||tW<=0||tD<=0) return T;
-  const hw=tW/2;
-  addSolidBox(T,ox+rw/2-hw, oy,       z0, ox+rw/2+hw, oy+tD,    z1);
-  addSolidBox(T,ox+rw/2-hw, oy+rd-tD, z0, ox+rw/2+hw, oy+rd,    z1);
-  addSolidBox(T,ox,          oy+rd/2-hw,z0, ox+tD,     oy+rd/2+hw,z1);
-  addSolidBox(T,ox+rw-tD,   oy+rd/2-hw,z0, ox+rw,     oy+rd/2+hw,z1);
-  return T;
-}
-
-function buildCircleStackTabs(D,boxH,t,c,rgH,tW,tH,tD){
-  const T=[],R=(D/2)-t-c,z0=boxH+rgH,z1=z0+tH,hw=tW/2,hd=tD/2;
-  if(R<=0||tH<=0) return T;
-  addSolidBox(T,-hw, R-hd,   z0, hw,  R+hd,   z1);
-  addSolidBox(T,-hw,-R-hd,   z0, hw, -R+hd,   z1);
-  addSolidBox(T, R-hd,-hw,   z0, R+hd, hw,    z1);
-  addSolidBox(T,-R-hd,-hw,   z0,-R+hd, hw,    z1);
-  return T;
-}
-
-function buildTrayTabs(tOW,tOD,trayH,tabZ,tW,tH,tD){
-  const T=[],hw=tW/2,z0=tabZ,z1=tabZ+tH;
-  if(z1>trayH||tW<=0||tH<=0||tD<=0) return T;
-  addSolidBox(T,tOW/2-hw,  -tD,      z0, tOW/2+hw, 0,        z1);
-  addSolidBox(T,tOW/2-hw,   tOD,     z0, tOW/2+hw, tOD+tD,   z1);
-  addSolidBox(T,-tD,         tOD/2-hw,z0, 0,        tOD/2+hw, z1);
-  addSolidBox(T,tOW,         tOD/2-hw,z0, tOW+tD,   tOD/2+hw, z1);
-  return T;
-}
-
-function buildCircleTrayTabs(tOD,trayH,tabZ,tW,tH,tD){
-  const T=[],R=tOD/2,hw=tW/2,z0=tabZ,z1=tabZ+tH;
-  if(z1>trayH) return T;
-  addSolidBox(T,-hw, R,   z0, hw, R+tD, z1);
-  addSolidBox(T,-hw,-R-tD,z0, hw,-R,   z1);
-  addSolidBox(T, R,  -hw, z0, R+tD,hw,  z1);
-  addSolidBox(T,-R-tD,-hw,z0,-R,  hw,   z1);
-  return T;
-}
-
-function trisToGeo(tris){
-  if(!tris||tris.length===0) return new THREE.BufferGeometry();
-  const pos=new Float32Array(tris.length*9),nor=new Float32Array(tris.length*9);
-  tris.forEach(({n,v1,v2,v3},i)=>{
-    const b=i*9; let j=0;
-    for(const[x,y,z]of[v1,v2,v3]){pos[b+j*3]=x;pos[b+j*3+1]=z;pos[b+j*3+2]=y;j++;}
-    for(let k=0;k<3;k++){nor[b+k*3]=n[0];nor[b+k*3+1]=n[2];nor[b+k*3+2]=n[1];}
-  });
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
-  return g;
-}
-
-function downloadSTL(tris,filename){
-  const buf=new ArrayBuffer(84+50*tris.length),dv=new DataView(buf);
-  dv.setUint32(80,tris.length,true); let o=84;
-  for(const{n,v1,v2,v3}of tris){
-    for(const c of n){dv.setFloat32(o,c,true);o+=4;}
-    for(const v of[v1,v2,v3])for(const c of v){dv.setFloat32(o,c,true);o+=4;}
-    dv.setUint16(o,0,true);o+=2;
-  }
-  const url=URL.createObjectURL(new Blob([buf],{type:'application/octet-stream'}));
-  Object.assign(document.createElement('a'),{href:url,download:filename}).click();
-  URL.revokeObjectURL(url);
-}
+import { createBuildPlate } from 'akruti/buildPlate.js';
+import { createScene } from 'akruti/scene.js';
+import { createXSection } from 'akruti/xsection.js';
+import { createLayersPanel } from 'akruti/layersPanel.js';
+import { downloadSTL } from 'akruti/stl.js';
+import {
+  buildBox, buildRidge, buildCylinder, buildCircleRidge,
+  buildLedges, buildCircleLedge,
+  buildStackTabs, buildCircleStackTabs,
+  buildTrayTabs, buildCircleTrayTabs,
+  trisToGeo,
+} from 'akruti/geom.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -664,92 +497,34 @@ function getActiveTrayDims(d){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// THREE.JS SCENE  — white background
+// THREE.JS SCENE  — white background (via shared lib)
 // ═══════════════════════════════════════════════════════════════
 const mount=document.getElementById('mount');
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(devicePixelRatio);
-renderer.setClearColor(0xf9f9f9);          // white bg
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.localClippingEnabled=true;
-mount.appendChild(renderer.domElement);
-
-const scene=new THREE.Scene();
-scene.fog=new THREE.Fog(0xf9f9f9,700,1500); // fog matches bg
-
-const camera=new THREE.PerspectiveCamera(42,1,0.5,6000);
-camera.position.set(250,180,260);
-
-scene.add(new THREE.AmbientLight(0xffffff,0.80));
-const sun=new THREE.DirectionalLight(0xffffff,1.0);
-sun.position.set(200,380,150); sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024);
-sun.shadow.camera.left=sun.shadow.camera.bottom=-250;
-sun.shadow.camera.right=sun.shadow.camera.top=250;
-sun.shadow.camera.near=10; sun.shadow.camera.far=900;
-scene.add(sun);
-const fill=new THREE.DirectionalLight(0xffd080,0.20); fill.position.set(-120,60,-100); scene.add(fill);
-const back=new THREE.DirectionalLight(0xffffff,0.12); back.position.set(0,-200,0); scene.add(back);
-
-// Grid — store refs for toggle
-const gridHelper=new THREE.GridHelper(700,28,0xcccccc,0xe0e0e0);
-scene.add(gridHelper);
-const floorMesh=new THREE.Mesh(
-  new THREE.PlaneGeometry(700,700),
-  new THREE.ShadowMaterial({opacity:0.08})
-);
-floorMesh.rotation.x=-Math.PI/2; floorMesh.receiveShadow=true; scene.add(floorMesh);
-
-const controls=new OrbitControls(camera,renderer.domElement);
-controls.enableDamping=true; controls.dampingFactor=0.065;
-controls.minDistance=30; controls.maxDistance=1000;
-controls.maxPolarAngle=Math.PI*0.82; controls.target.set(0,30,0); controls.update();
-
-new ResizeObserver(()=>{
-  const w=mount.clientWidth,h=mount.clientHeight; if(!w||!h) return;
-  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
-}).observe(mount);
-
-(function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);})();
+const { scene, camera, renderer, controls, gridHelper, floorMesh } =
+  createScene(mount, {
+    bg:0xf9f9f9, fog:{near:700,far:1500},
+    cameraPos:[250,180,260], cameraTarget:[0,30,0],
+    gridSize:700, gridDivs:28,
+  });
 document.getElementById('loading').style.display='none';
 
 // ═══════════════════════════════════════════════════════════════
-// CROSS-SECTION
+// CROSS-SECTION (via shared lib)
 // ═══════════════════════════════════════════════════════════════
-function getClipPlane(){
+function xsectConfig(){
   const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
-  const isC=shape==='circ', totalD=isC?W:D, totalH=SC*H+(SC-1)*rH, p=xsect.pos/100;
-  if(xsect.axis==='x') return new THREE.Plane(new THREE.Vector3(-1,0,0),-W/2+p*W);
-  if(xsect.axis==='y') return new THREE.Plane(new THREE.Vector3(0,0,-1),-totalD/2+p*totalD);
-  return new THREE.Plane(new THREE.Vector3(0,-1,0),p*totalH);
+  const isC=shape==='circ';
+  return { on:xsect.on, axis:xsect.axis, pos:xsect.pos,
+           W, totalD:isC?W:D, totalH:SC*H+(SC-1)*rH };
 }
-
-let capMesh=null;
-function updateCapPlane(){
-  if(capMesh){scene.remove(capMesh);capMesh.geometry.dispose();capMesh.material.dispose();capMesh=null;}
-  if(!S.xsect.on) return;
-  const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
-  const isC=shape==='circ',totalD=isC?W:D,totalH=SC*H+(SC-1)*rH;
-  const size=Math.max(W,totalD,totalH)*1.6, p=xsect.pos/100;
-  capMesh=new THREE.Mesh(
-    new THREE.PlaneGeometry(size,size),
-    new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:0.08,side:THREE.DoubleSide,depthWrite:false})
-  );
-  if(xsect.axis==='x'){capMesh.rotation.y=-Math.PI/2;capMesh.position.set(-W/2+p*W,totalH/2,0);}
-  else if(xsect.axis==='y'){capMesh.position.set(0,totalH/2,-totalD/2+p*totalD);}
-  else{capMesh.rotation.x=Math.PI/2;capMesh.position.set(0,p*totalH,0);}
-  scene.add(capMesh);
-}
-
-function updateClip(){
-  const planes=S.xsect.on?[getClipPlane()]:[];
-  Object.values(meshes).forEach(m=>{
-    if(!m) return;
-    if(m.material) m.material.clippingPlanes=planes;
-    if(m.userData.edges?.material) m.userData.edges.material.clippingPlanes=planes;
-  });
-}
+const xsection=createXSection({
+  scene,
+  getConfig:xsectConfig,
+  getMeshes:()=>Object.values(meshes),
+});
+const getClipPlane=()=>xsection.buildPlane();
+const updateCapPlane=()=>xsection.updateCap();
+const updateClip=()=>xsection.updateClip();
 
 function updateXsectLabel(){
   const{outerW:W,outerD:D,outerH:H,stackCount:SC,ridgeH:rH,shape,xsect}=S;
@@ -1042,7 +817,7 @@ function rebuildExportUI(d){
       if(!isLast) tris.push(...brTris(W,D,H,t,c,rH,rW));
       if(L.on) tris.push(...(isC?buildCircleLedge(W,H,t,L.height,L.depth,L.thick):buildLedges(W,D,H,t,L.height,L.depth,L.thick)));
       if(!isLast&&SL.on) tris.push(...(isC?buildCircleStackTabs(W,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD):buildStackTabs(W,D,H,t,c,rH,SL.tabW,SL.tabH,SL.tabD)));
-      downloadSTL(tris,isC?`box-circ-d${W}h${H}mm.stl`:`box-${W}x${D}x${H}mm${isLast?'':'-ridge'}.stl`);
+      downloadSTL(tris,isC?`box-circ-d${W}h${H}mm.stl`:`box-${W}x${D}x${H}mm${isLast?'':'-ridge'}.stl`,{bedSize:180});
     });
     list.appendChild(btn);
   }
@@ -1052,7 +827,7 @@ function rebuildExportUI(d){
   trayBtn.addEventListener('click',()=>{
     const tris=[...btTris(tOW,isC?tOW:tOD,trayH,S.trayWallT)];
     if(TL.on) tris.push(...(isC?buildCircleTrayTabs(tOW,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD):buildTrayTabs(tOW,tOD,trayH,TL.tabZ,TL.tabW,TL.tabH,TL.tabD)));
-    downloadSTL(tris,isC?`tray-circ-d${tOW.toFixed(1)}h${trayH}mm.stl`:`tray-${tOW.toFixed(1)}x${tOD.toFixed(1)}x${trayH}mm.stl`);
+    downloadSTL(tris,isC?`tray-circ-d${tOW.toFixed(1)}h${trayH}mm.stl`:`tray-${tOW.toFixed(1)}x${tOD.toFixed(1)}x${trayH}mm.stl`,{bedSize:180});
   });
   list.appendChild(trayBtn);
 }
@@ -1067,40 +842,14 @@ document.querySelectorAll('.sec-hdr').forEach(hdr=>{
 });
 
 // ═══════════════════════════════════════════════════════════════
-// FLOATING PANEL — drag + close/show
+// FLOATING PANEL — drag + close/show (via shared lib)
 // ═══════════════════════════════════════════════════════════════
-const elemPanel=document.getElementById('elem-panel');
-const dragHandle=document.getElementById('fp-drag-handle');
-const closeBtn=document.getElementById('fp-close-btn');
-const toggleElemBtn=document.getElementById('toggleElemPanel');
-
-let dragging=false, dragOffX=0, dragOffY=0;
-
-dragHandle.addEventListener('mousedown',e=>{
-  if(e.target===closeBtn) return;
-  dragging=true;
-  const r=elemPanel.getBoundingClientRect();
-  dragOffX=e.clientX-r.left; dragOffY=e.clientY-r.top;
-  e.preventDefault();
-});
-document.addEventListener('mousemove',e=>{
-  if(!dragging) return;
-  const mr=mount.getBoundingClientRect();
-  let x=e.clientX-mr.left-dragOffX;
-  let y=e.clientY-mr.top-dragOffY;
-  x=Math.max(0,Math.min(x, mr.width-elemPanel.offsetWidth));
-  y=Math.max(0,Math.min(y, mr.height-elemPanel.offsetHeight));
-  elemPanel.style.left=x+'px'; elemPanel.style.top=y+'px'; elemPanel.style.right='auto';
-});
-document.addEventListener('mouseup',()=>{ dragging=false; });
-
-closeBtn.addEventListener('click',()=>{
-  elemPanel.classList.add('hidden');
-  toggleElemBtn.classList.remove('active');
-});
-toggleElemBtn.addEventListener('click',()=>{
-  const hidden=elemPanel.classList.toggle('hidden');
-  toggleElemBtn.classList.toggle('active',!hidden);
+createLayersPanel({
+  panelEl:  document.getElementById('elem-panel'),
+  handleEl: document.getElementById('fp-drag-handle'),
+  closeBtn: document.getElementById('fp-close-btn'),
+  toggleBtn:document.getElementById('toggleElemPanel'),
+  mountEl:  mount,
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1111,6 +860,13 @@ document.getElementById('toggleGrid').addEventListener('click',function(){
   gridHelper.visible=vis;
   floorMesh.visible=vis;
   this.classList.toggle('active',vis);
+});
+
+// A1 mini build-plate toggle (180×180×180 mm)
+const buildPlate=createBuildPlate(scene,{x:180,y:180,z:180,cell:10});
+document.getElementById('toggleBuildPlate').addEventListener('click',function(){
+  buildPlate.setVisible(!buildPlate.isVisible());
+  this.classList.toggle('active',buildPlate.isVisible());
 });
 
 // ═══════════════════════════════════════════════════════════════

@@ -55,6 +55,7 @@ export default function CategoryMosaic() {
               category={cat}
               span={spans[i] ?? "md:col-span-6"}
               index={i + 1}
+              total={categories.length}
               isClicked={clicked === cat.id}
               onClick={() => handleClick(cat.id)}
             />
@@ -69,12 +70,14 @@ function CategoryCell({
   category,
   span,
   index,
+  total,
   isClicked,
   onClick,
 }: {
   category: Category;
   span: string;
   index: number;
+  total: number;
   isClicked: boolean;
   onClick: () => void;
 }) {
@@ -116,7 +119,7 @@ function CategoryCell({
       <div className="relative z-10 p-8 md:p-10 h-full flex flex-col justify-between">
         {/* Index */}
         <span className="text-[0.5625rem] tracking-[0.3em] text-white/50 font-body">
-          {String(index).padStart(2, "0")} / {categories.length.toString().padStart(2, "0")}
+          {String(index).padStart(2, "0")} / {String(total).padStart(2, "0")}
         </span>
 
         {/* Name + text */}

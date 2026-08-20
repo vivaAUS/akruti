@@ -440,16 +440,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     ["Model ref",    `AKR-${product.id.padStart(4, "0")}`],
   ];
 
-  function handleAdd() {
+  const handleAdd = () => {
     addItem(product);
     if (qty > 1) updateQuantity(product.id, qty);
     toast.success(`${qty}× ${product.name} added to cart`);
-  }
+  };
 
-  function handleBuyNow() {
+  const handleBuyNow = () => {
     handleAdd();
     toast("Checkout coming soon!", { icon: "⏳" });
-  }
+  };
 
   function handleReviewSubmit(e: React.FormEvent) {
     e.preventDefault();

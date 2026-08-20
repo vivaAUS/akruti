@@ -45,7 +45,13 @@ Never assume a route param resolves.
 ## 3. The build must have no undefined identifiers `[GATE]` `[VERIFIED]`
 
 `src/components/home/CategoryMosaic.tsx:119` referenced `categories`, which does
-not exist in scope (`TS2552`). Either dead code or a live `ReferenceError`.
+not exist in scope (`TS2552`). Review resolved which: the component is **dead
+code** — `grep -rn CategoryMosaic src/` finds only its own definition, and
+`src/app/page.tsx` renders `Hero`, `FeaturedProducts` and `CollectionExplorer`
+only. The `ReferenceError` was never reachable. `CollectionExplorer.tsx:494`
+already passes `total={categories.length}` to a near-identical cell, so the
+orphan is a duplicate and is a deletion candidate rather than something to
+maintain.
 
 → `tsc --noEmit` clean is non-negotiable. A type error in a page component is a
 production crash, not a style preference.
@@ -85,10 +91,32 @@ answer is `localStorage`, it is a preview, and it must say so.
 are supported at checkout. Stripe is a dependency, but there is no checkout
 route and no client call — the cart cannot take money.
 
-→ Customer-facing copy is a claim about behaviour. When copy and code disagree,
-that is a defect in one of them; decide which, and fix that one.
+Worse, on a customer page: `src/app/custom-prints/page.tsx:218-220` renders
+`<input type="file" accept=".png,.jpg,.jpeg,.stl,.obj" />` with **no `onChange`
+and no handler**, under copy reading "Click to upload — PNG, JPG, STL, OBJ
+(max 20 MB)". A customer picks a file and nothing is sent anywhere. This never
+used `/api/upload`, so it is untouched by the upload work.
 
-## 8. Review the diff, not the repository `[PROBE]`
+→ Customer-facing copy is a claim about behaviour. When copy and code disagree,
+that is a defect in one of them; decide which, and fix that one. Weight
+customer-facing instances above admin-facing ones.
+
+## 8. Closing a write path does not reclaim what it already wrote `[GATE]` `[VERIFIED]`
+
+Measured against this repo's own `next build` + `next start`: a file written to
+`public/uploads/` while the server is running returns 404; after a restart, with
+**no rebuild**, the same URL returns 200 with `Content-Type: text/html` and no
+`X-Content-Type-Options: nosniff`. Production is not safer than dev here, only
+delayed by one restart.
+
+`public/uploads/` is gitignored, so anything already there is invisible to a
+diff and nobody will spot it in review.
+
+→ When a vulnerable write path is closed, the change is not complete until the
+artefacts it produced are inventoried and cleared on every deployed instance.
+"Disabled the route" and "the hole is closed" are different claims.
+
+## 9. Review the diff, not the repository `[PROBE]`
 
 Pre-existing problems the change did not touch are NOTE, marked "pre-existing".
 A review that expands into unrelated refactors stops being read.
@@ -101,3 +129,9 @@ A review that expands into unrelated refactors stops being read.
   4 typecheck errors, 26 lint errors, 3 warnings. Gates 1, 2, 3 seeded from the
   typecheck/lint output; gates 4, 5, 6, 7 from reading the upload route, the
   catalog store and the FAQ copy. No code changed in this pass.
+- **2026-08-20 · Upload route disabled; 4 typecheck errors fixed.** Review of
+  that diff added gate 8 (measured: restart makes an already-written file
+  servable as `text/html`), resolved gate 3 to dead code rather than a live
+  crash, and found the gate 7 instance on `custom-prints`. `tsc` clean;
+  `eslint` unchanged at 26 errors / 3 warnings, identical sets on master and
+  HEAD; `next build` compiles 16 pages.

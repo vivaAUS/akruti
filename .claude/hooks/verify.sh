@@ -7,6 +7,9 @@
 #   verify.sh          fast gate: lint + typecheck   (seconds)
 #   verify.sh --full   release gate: + production build
 #
+# Lint is checked against .claude/gates/lint-baseline.json and fails only on
+# NEW findings. A gate that can never go green is a gate nobody reads.
+#
 # Exit 0 = pass, 1 = fail, 0 with a notice if the toolchain is not installed.
 set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 0
@@ -29,7 +32,7 @@ run() {
 }
 
 run "typecheck" npx tsc --noEmit
-run "lint"      npx eslint src
+run "lint"      ./.claude/hooks/lint_gate.py
 
 if [ "${1:-}" = "--full" ]; then
   run "build" npx next build

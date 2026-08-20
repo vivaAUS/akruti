@@ -41,7 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 # claude code
-.claude/
+# Project config is versioned — agents, hooks and the gate list are part of
+# how this repo is reviewed. Only local overrides stay private.
+.claude/settings.local.json
+.claude/*.local.json
 
 # local binaries
 cloudflared.exe

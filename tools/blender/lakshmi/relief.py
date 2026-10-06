@@ -16,28 +16,28 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 
-def analyse(path, strand_r_px=4.5, px_mm=0.1228, depth=1.7):
+def analyse(path, strand_r_px=4.5, px_mm=0.1228, depth=1.7, scale=1.0):
     im = cv2.imread(path)
     g = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY).astype(np.float32)
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     S, V = hsv[..., 1].astype(np.float32), hsv[..., 2].astype(np.float32)
     background = ((V < 185) & (S < 70)) | (S < 28)
     background = cv2.morphologyEx(background.astype(np.uint8), cv2.MORPH_OPEN, np.ones((5, 5), np.uint8)) > 0
-    d = g - cv2.GaussianBlur(g, (0, 0), 12)
+    d = g - cv2.GaussianBlur(g, (0, 0), 12 * scale)
     holes = (d < -16) & (g < np.percentile(g, 45))
     holes = cv2.morphologyEx(holes.astype(np.uint8), cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
     holes = cv2.morphologyEx(holes, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)) > 0
     n, lab, stats, _ = cv2.connectedComponentsWithStats(holes.astype(np.uint8), 8)
-    holes = np.isin(lab, np.where(stats[:, cv2.CC_STAT_AREA] >= 25)[0][1:])
+    holes = np.isin(lab, np.where(stats[:, cv2.CC_STAT_AREA] >= 25 * scale * scale)[0][1:])
     material = ~holes & ~background
     dt = cv2.distanceTransform(material.astype(np.uint8), cv2.DIST_L2, 5)
     r = strand_r_px
     t = np.clip(dt / r, 0, 1)
     h = r * np.sqrt(1 - (1 - t) ** 2)                       # round strand profile
-    h += 3.0 * np.clip((dt - r) / 25.0, 0, 1)                # broad motifs (lotus, beads) bulge
-    detail = np.clip((g - cv2.GaussianBlur(g, (0, 0), 3)) / 40.0, -1, 1)
-    h += 1.6 * detail * (t > 0.3)                            # carved shading detail
-    h = cv2.GaussianBlur(h.astype(np.float32), (0, 0), 0.8)
+    h += 3.0 * scale * np.clip((dt - r) / (25.0 * scale), 0, 1)                # broad motifs (lotus, beads) bulge
+    detail = np.clip((g - cv2.GaussianBlur(g, (0, 0), 3 * scale)) / 40.0, -1, 1)
+    h += 1.6 * scale * detail * (t > 0.3)                            # carved shading detail
+    h = cv2.GaussianBlur(h.astype(np.float32), (0, 0), 0.8 * scale)
     height_mm = h * px_mm * depth
     return dict(material=material, height=height_mm, holes=holes, background=background, shape=g.shape)
 
@@ -57,7 +57,7 @@ def _bvh_for(objects):
 
 def project(name, field, to_px, region_mask, carriers, fallback_y, step=0.25,
             lift=0.35, max_jump=1.6, bbox=None, coll=None, material=None, thickness=0.9,
-            from_back=False, smooth_edges=6):
+            from_back=False, smooth_edges=6, skip_if_hits=None):
     """Build the relief mesh.
 
     to_px(x, z) -> (px, py) maps statue mm to image pixels.
@@ -65,6 +65,7 @@ def project(name, field, to_px, region_mask, carriers, fallback_y, step=0.25,
     carriers: list of objects to project onto; fallback_y(x, z) used when nothing is hit.
     """
     bvh = _bvh_for(carriers) if carriers else None
+    skip = _bvh_for(skip_if_hits) if skip_if_hits else None
     mat, hgt = field["material"], field["height"]
     H, W = mat.shape
     x0, x1, z0, z1 = bbox
@@ -82,6 +83,8 @@ def project(name, field, to_px, region_mask, carriers, fallback_y, step=0.25,
             pi, pj = int(round(px)), int(round(py))
             if not (0 <= pi < W and 0 <= pj < H) or not region_mask[pj, pi] or not mat[pj, pi]:
                 continue
+            if skip and skip.ray_cast(Vector((x, -500.0 * sgn, z)), fwd)[0] is not None:
+                continue                      # covered by a full-wrap garment
             hit = bvh.ray_cast(Vector((x, -500.0 * sgn, z)), fwd) if bvh else (None,)
             if hit[0] is not None:
                 p, n = hit[0], hit[1]

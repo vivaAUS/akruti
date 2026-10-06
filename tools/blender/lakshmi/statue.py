@@ -8,14 +8,15 @@ import bpy, math, os, sys
 from mathutils import Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import kit, body, relief
+import kit, body, relief, fullwrap, hair
+import cv2
 import bmesh
 import numpy as np
 
 OUT = os.path.join(HERE, "out")
 os.makedirs(OUT, exist_ok=True)
 REF = os.path.join(HERE, "reference.jpg")
-MODE = sys.argv[-1] if sys.argv[-1] in ("align", "full") else "full"
+MODE = sys.argv[-1] if sys.argv[-1] in ("align", "front", "full") else "full"
 
 # reference image -> statue frame: x right, z up, viewed from -Y
 PX = 0.1228              # mm per pixel (base plinth 1010 px = 124 mm)
@@ -144,6 +145,27 @@ def base_relief(field):
                          unit_w_px=252, units=12, px_mm=PX, material=kit.ivory())
 
 
+def garments_360(field, mask, torso, bell, crown, head_y):
+    """Torso, lap and crown carved all the way round: photo on the front, synthesised elsewhere."""
+    photo = cv2.imread(REF)
+    mm = PX
+    tx, ty = np.mean([v.co.x for v in torso.data.vertices]), np.mean([v.co.y for v in torso.data.vertices])
+    jobs = [
+        ("Lap", [bell], (0, LANDMARKS["body_y"]), LANDMARKS["seat_z"], P(0, 985)[2], 59, (1080, 1270, 260, 1020)),
+        ("Bodice", [torso], (tx, ty), P(0, 1010)[2], P(0, 598)[2], 26, (650, 1000, 470, 800)),
+        ("Crown", [crown], (0, head_y), P(0, 398)[2], P(0, 2)[2], 20, (60, 340, 470, 800)),
+    ]
+    for name, car, axis, z0, z1, r, (y0, y1, x0, x1) in jobs:
+        U = fullwrap.unwrap(car, axis, z0, z1, r, mm, photo, mask, to_px)
+        ex = photo[y0:y1, x0:x1]
+        img = fullwrap.synthesize(U["img"], U["known"], ex, name)
+        cv2.imwrite(os.path.join(OUT, f"unwrap_{name}.png"),
+                    np.concatenate([U["img"], img], 0))
+        f = fullwrap.analyse_array(img, scale=1.0, px_mm=mm)
+        fullwrap.build(name + "360", U, f, lift=1.6, stride=2, material=kit.ivory())
+        print(name, "unwrap", img.shape, "known %.0f%%" % (100 * U["known"].mean()))
+
+
 def build(scene, with_relief=True):
     coll = scene.collection
     base_top = base_core(coll)
@@ -154,6 +176,12 @@ def build(scene, with_relief=True):
         ob.data.materials.append(kit.ivory())
     print("base top", round(base_top, 1), "seat", round(LANDMARKS["seat_z"], 1), "scale", round(k, 2))
     head_y = (marks["head"].y + marks["head_top"].y) / 2
+
+    # hair: cap over the skull + long wavy locks
+    if MODE == "full":
+        hc = (marks["head"] + marks["head_top"]) / 2
+        hair.cap(fig, hc, marks["eye.L"].z + 1.5, coll)
+        hair.locks(fig, hc, coll)
 
     # eyes
     for sd in "LR":
@@ -223,11 +251,20 @@ def build(scene, with_relief=True):
             if z > 141:
                 return head_y + 9
             if z > 98:
+                if abs(x) < 29 and MODE == "full":
+                    return None            # 3D hair locks replace the photo hair here
                 return head_y + 3 if abs(x) < 29 else head_y + 9
             return LANDMARKS["body_y"] + 4
         mask = region_mask(field["shape"])
-        relief.project("Filigree", field, to_px, mask, [crown, torso, bell], fallback,
-                       step=0.25, lift=1.8, bbox=(-72, 72, 31.0, 188.0), material=kit.ivory())
+        if MODE == "front":
+            relief.project("Filigree", field, to_px, mask, [crown, torso, bell], fallback,
+                           step=0.25, lift=1.8, bbox=(-72, 72, 31.0, 188.0), material=kit.ivory())
+        else:
+            garments_360(field, mask, torso, bell, crown, head_y)
+            # halo, side drapes and loose hair stay as front relief panels (they are flat in the original)
+            relief.project("Panels", field, to_px, mask, [], fallback, step=0.25, lift=0.0,
+                           bbox=(-72, 72, 31.0, 188.0), material=kit.ivory(), thickness=1.4,
+                           skip_if_hits=[crown, torso, bell])
         base_relief(field)
         # strut tying the halo to the back of the crown (printability)
         bpy.ops.mesh.primitive_cylinder_add(radius=3.0, depth=12, location=(0, head_y + 4, P(0, 300)[2]),
@@ -240,6 +277,7 @@ def front_render(name, samples=96):
     scene = bpy.context.scene
     kit.stage((0, -520, 105), (0, 0, 98), lens=85, res=(1000, 1244), name=name)
     kit.stage((-300, -420, 150), (0, 0, 95), lens=85, res=(1000, 1244), name=name + "_34")
+    kit.stage((260, 450, 150), (0, 0, 95), lens=85, res=(1000, 1244), name=name + "_back")
 
 
 def ortho_front(name, res_scale=0.5):
@@ -264,9 +302,9 @@ def ortho_front(name, res_scale=0.5):
 
 if __name__ == "__main__":
     scene = kit.new_scene()
-    build(scene, with_relief=(MODE == "full"))
-    if MODE == "full":
-        front_render("statue_front")
+    build(scene, with_relief=(MODE != "align"))
+    if MODE in ("front", "full"):
+        front_render("statue_" + MODE)
     if MODE == "align":
         kit.stage((0, -330, 120), (0, 0, 90), lens=50, res=(642, 799), name="_tmp")  # lights/world
         scene.cycles.samples = 16

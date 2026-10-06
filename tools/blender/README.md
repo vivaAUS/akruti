@@ -23,7 +23,12 @@ Seated four-armed Lakshmi statue built from `reference.jpg`.
 | `kit.py` | ornament kit: filigree strands, bead rings, petals, lotus flower, halo, procedural base (`python kit.py base\|lotus\|halo`) |
 | `body.py` | MPFB2 human (all-quad mesh + rig), face tuning, padmasana, 2-bone IK that puts each hand at a measured landmark, extra arm pair |
 | `relief.py` | photo → filigree: finds holes/material in the reference, gives strands a rounded profile, projects them onto 3D carriers (or wraps a repeating band round a cylinder) as real cut-through geometry |
-| `statue.py` | assembly; `LANDMARKS` and region masks are read off the reference (`PX` = mm per pixel). `python statue.py align` renders an overlay against the photo, `python statue.py full` builds and renders |
+| `fullwrap.py` | 360° garments: unwraps torso/lap/crown round a vertical axis, copies the photo where the front is visible, and fills sides, back and areas hidden by hands with [texture-synthesis](https://github.com/EmbarkStudios/texture-synthesis) inpainting before carving |
+| `hair.py` | hair cap over the skull plus wavy strand-bundle locks that fall with gravity and are kept off the body |
+| `statue.py` | assembly; `LANDMARKS` and region masks are read off the reference (`PX` = mm per pixel). `python statue.py align` renders an overlay against the photo; `front` = front-projection only; `full` = 360° build (front, 3/4 and back renders) |
 
-Known limits: filigree projected from one front photo reads best from the front; the
-halo, side drapes and lap sides are relief panels rather than fully sculpted volumes.
+`fullwrap.py` expects the texture-synthesis binary (release 0.8.2, linux-musl) at
+`$TEXTURE_SYNTHESIS`.
+
+Known limits: the halo and side drapes are flat openwork panels (as in the original);
+synthesised back/side filigree follows the photo's style but is softer than the copied front.
